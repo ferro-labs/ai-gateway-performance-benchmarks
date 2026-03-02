@@ -1,0 +1,69 @@
+# Benchmark matrix for gateway comparison.
+# Fill URLs/keys via environment variables from .env.
+
+gateways:
+  ferrogateway:
+    base_url: ${FERROGATEWAY_URL}
+    api_key: ${FERROGATEWAY_API_KEY}
+    request_path: /v1/chat/completions
+    model: ${MODEL}
+
+  litellm:
+    base_url: ${LITELLM_URL}
+    api_key: ${LITELLM_API_KEY}
+    request_path: /v1/chat/completions
+    model: ${MODEL}
+
+  portkey:
+    base_url: ${PORTKEY_URL}
+    api_key: ${PORTKEY_API_KEY}
+    request_path: /v1/chat/completions
+    model: ${MODEL}
+    extra_headers:
+      x-portkey-provider: openai
+
+  kong:
+    base_url: ${KONG_URL}
+    api_key: ${KONG_API_KEY}
+    request_path: /v1/chat/completions
+    model: ${MODEL}
+
+scenarios:
+  - name: smoke
+    users: 10
+    spawn_rate: 2
+    duration: 2m
+    prompt: "Explain API gateway benchmarking in one sentence."
+    max_tokens: 64
+    # wait_time: [0, 0]  # [min_wait_ms, max_wait_ms] between requests per user
+
+  - name: baseline
+    users: 50
+    spawn_rate: 10
+    duration: 10m
+    prompt: "Return one line: benchmarking gateways under equal load."
+    max_tokens: 64
+
+  - name: stress
+    users: 150
+    spawn_rate: 20
+    duration: 10m
+    prompt: "Return one short line with 10 words about latency percentiles."
+    max_tokens: 64
+
+  - name: streaming-baseline
+    users: 50
+    spawn_rate: 10
+    duration: 10m
+    prompt: "Write three short sentences about distributed systems."
+    max_tokens: 128
+    stream: true
+    # Tests chunked SSE transfer performance and time-to-first-token
+
+  - name: streaming-stress
+    users: 100
+    spawn_rate: 15
+    duration: 10m
+    prompt: "Write three short sentences about distributed systems."
+    max_tokens: 128
+    stream: true

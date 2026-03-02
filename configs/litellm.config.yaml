@@ -1,0 +1,10 @@
+# Example LiteLLM proxy config
+# Run: litellm --config configs/litellm.config.yaml --port 4000
+model_list:
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+general_settings:
+  master_key: ${LITELLM_API_KEY}

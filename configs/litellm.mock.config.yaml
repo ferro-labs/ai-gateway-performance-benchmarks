@@ -1,0 +1,16 @@
+# LiteLLM proxy config for isolated mock-server benchmarking.
+# The api_base points requests to the local mock server, so no real
+# OpenAI key is consumed and latency reflects gateway overhead only.
+#
+# For real OpenAI testing, use configs/litellm.config.yaml instead.
+#
+# Run standalone: litellm --config configs/litellm.mock.config.yaml --port 4000
+model_list:
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: mock-key
+      api_base: http://mock-server:9000/v1
+
+general_settings:
+  master_key: ${LITELLM_API_KEY}

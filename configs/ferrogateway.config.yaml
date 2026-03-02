@@ -1,0 +1,16 @@
+# Ferro AI Gateway config for benchmark comparison.
+# Run: ferrogw --config configs/ferrogateway.config.yaml
+# Or with Docker: see docker-compose.yml
+#
+# This config exposes a single OpenAI-compatible upstream via FerroGateway,
+# matching what LiteLLM and Kong are configured to do in this benchmark.
+strategy:
+  mode: single
+
+targets:
+  - virtual_key: openai
+
+# To use the local mock server instead of real OpenAI (recommended for
+# isolated overhead benchmarking), set the upstream URL to the mock:
+#   OPENAI_BASE_URL=http://mock-server:9000
+# and set a dummy API key.
