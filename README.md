@@ -1,58 +1,86 @@
 # AI Gateway Performance Benchmarks
 
-Reproducible benchmarking suite to compare **Ferro AI Gateway** against **LiteLLM**, **Portkey AI**, and **Kong** under the same load profile.
+Reproducible benchmarking suite to compare **Ferro AI Gateway** against **LiteLLM**, **Portkey AI**, and **Kong** under the same load profile. Also includes k6 and wrk tools for deep FerroGateway throughput testing.
 
-This setup is inspired by the benchmark style in `BerriAI/litellm-performance-benchmarks`, but organized as a reusable harness so you can rerun tests, change workloads, and regenerate summary tables.
+All tooling is written in **Go** — no Python or Node.js runtime required on the host.
 
 ## What this benchmark measures
 
-- End-to-end user latency from load generator to gateway (Locust metrics)
+- End-to-end user latency from load generator to gateway
 - Throughput (`Requests/s`)
 - Error rate (`Failure %`)
 - Percentiles (`p50`, `p95`, `p99`)
-- Streaming (SSE) performance via the `streaming-*` scenarios
+- SSE streaming performance via the `streaming-*` scenarios
+- High-VU ramp behaviour up to 5,000 concurrent users (k6)
+- Peak RPS ceiling (wrk)
+
+## Tools
+
+| Tool | Role |
+| :--- | :--- |
+| **`cmd/bench`** (Go) | Multi-gateway comparative benchmarks — concurrent VU goroutines, p50/p95/p99, CSV + Markdown report |
+| **`cmd/mockserver`** (Go) | Zero-latency upstream — isolates gateway overhead from LLM latency |
+| **k6** | High-VU ramp tests on FerroGateway; baseline/stress/peak\_5k scenarios |
+| **wrk** | Single-node peak RPS ceiling; fastest feedback on max throughput |
+
+## Prerequisites
+
+| Requirement | Purpose |
+| :--- | :--- |
+| **Go 1.22+** | Build `cmd/bench` and `cmd/mockserver` |
+| **Docker + Docker Compose v2** | Run gateway containers |
+| **k6** _(optional)_ | High-VU throughput tests — [install](https://k6.io/docs/get-started/installation/) |
+| **wrk** _(optional)_ | Peak RPS tests — `sudo apt-get install wrk` / `brew install wrk` |
 
 ## Structure
 
-- `locustfile.py`: OpenAI-compatible chat completion load test (blocking + SSE streaming).
-- `benchmarks.yaml`: benchmark matrix (gateways + scenarios).
-- `scripts/run_benchmarks.py`: orchestrates runs and writes report files.
-- `scripts/mock_server.py`: zero-latency OpenAI-compatible mock server for isolated overhead measurement.
-- `configs/`: gateway config templates.
-- `results/<timestamp>/`: generated CSV + summary files.
+```
+cmd/
+  bench/main.go          — Go benchmark orchestrator (replaces Locust)
+  mockserver/main.go     — Go mock server (replaces Python mock)
+benchmarks.yaml          — Benchmark matrix (gateways + scenarios)
+k6/chat_completions.js   — k6 script: baseline, stress, peak_5k VU ramp
+wrk/chat_completions.lua — wrk Lua script: peak RPS measurement
+Dockerfile.mockserver    — Multi-stage Go build for the mock server container
+configs/                 — Gateway config templates
+results/<timestamp>/     — Generated output (gitignored)
+```
+
+## Quick start
+
+```bash
+# 1. Build Go binaries
+make build
+
+# 2. Pull latest gateway images, build mock-server container, start all services
+make setup
+
+# 3. Run full benchmark matrix (all gateways × all scenarios) + k6 + wrk
+make bench-all
+
+# 4. Clean up everything
+make clean
+```
+
+Or as a single one-shot command:
+
+```bash
+make run   # build → setup → bench-all
+```
 
 ## Quick start — isolated mode (recommended)
 
-Isolated mode routes all gateways to a local mock server, so measurements reflect **gateway overhead only**, not live LLM latency.
-
-1. Install Python dependencies:
+Isolated mode routes all gateways to the local Go mock server, so measurements reflect **gateway overhead only**, not live LLM latency.
 
 ```bash
-cd ai-gateway-performance-benchmarks
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+# Copy and fill in .env (URLs + API keys — see .env.example)
+cp .env.example .env
+
+# Build, start, and benchmark in one command
+make run
 ```
 
-2. Start all gateway services via Docker Compose (builds FerroGateway from `../ai-gateway`):
-
-```bash
-docker compose up -d
-# Optional: also start Kong
-docker compose --profile kong up -d
-```
-
-3. Run full benchmark matrix:
-
-```bash
-python scripts/run_benchmarks.py --gateways ferrogateway,litellm
-```
-
-4. Check output:
-
-- `results/<timestamp>/summary.md`
-- `results/<timestamp>/summary.json`
-- `results/<timestamp>/*_stats.csv`
+Results are written to `results/bench-<timestamp>.csv` and `results/bench-<timestamp>.md`.
 
 ## Quick start — real upstream mode
 
@@ -62,7 +90,7 @@ Uses live API keys. Gateway overhead is much smaller than upstream latency so di
 
 ```bash
 cp .env.example .env
-# Fill gateway URLs and API keys in .env
+# Fill in real gateway URLs and API keys
 ```
 
 2. Ensure all gateways route to the **same upstream model** and similar infra.
@@ -70,33 +98,97 @@ cp .env.example .env
 3. Run:
 
 ```bash
-python scripts/run_benchmarks.py
+make bench
+```
+
+## Quick start — k6 high-VU throughput (FerroGateway self-benchmark)
+
+k6 is ideal for finding throughput limits and measuring ramp-to-5k-VU behaviour.
+The same local mock server is used, so measurements reflect gateway overhead only.
+
+```bash
+# Start services
+make setup
+
+# All scenarios (baseline + stress + peak_5k)
+make bench-k6
+
+# Peak_5k ramp only
+make bench-k6-peak
+
+# Against a custom gateway URL
+K6_GATEWAY_URL=http://localhost:4000 K6_API_KEY=mykey k6 run k6/chat_completions.js
+```
+
+Results are written as JSON to `results/k6/`.
+
+## Quick start — wrk peak RPS
+
+wrk gives the fastest single-number answer: maximum sustainable requests/second.
+
+```bash
+make bench-wrk        # 12 threads, 500 connections, 60s
+make bench-wrk-light  # 4 threads, 100 connections, 30s
+
+# Custom target
+wrk -t4 -c100 -d30s -s wrk/chat_completions.lua http://localhost:4000
+```
+
+## Makefile reference
+
+```bash
+make help               # All available targets
+make build              # Compile bin/bench and bin/mockserver
+make setup              # Pull latest images + build mock-server container + start all services
+make run                # build → setup → bench-all (one-shot)
+make update             # Pull latest images, rebuild mock-server, restart services
+make up                 # Start core services only (mock-server + FerroGateway + LiteLLM)
+make up-kong            # Start core services + Kong
+make up-portkey         # Start core services + Portkey
+make down               # Stop all services
+make mock               # Run mock server locally on port 9000 (outside Docker)
+make bench-all          # Go bench (all gateways) + k6 + wrk
+make bench              # Go bench — full matrix (all gateways × all scenarios)
+make bench-ferrogateway # Go bench — FerroGateway only
+make bench-litellm      # Go bench — LiteLLM only
+make bench-kong         # Go bench — Kong only
+make bench-portkey      # Go bench — Portkey only
+make bench-repeat       # Go bench — full matrix, 3 runs averaged
+make bench-dry          # Preview matrix without executing
+make bench-k6           # k6 all scenarios
+make bench-k6-baseline  # k6 baseline only
+make bench-k6-peak      # k6 peak_5k only
+make bench-wrk          # wrk peak RPS (500 connections, 60s)
+make bench-wrk-light    # wrk (100 connections, 30s)
+make clean              # Stop services, remove images/bins/results
 ```
 
 ## Useful commands
 
-Run only one scenario:
+Run only one gateway:
 
 ```bash
-python scripts/run_benchmarks.py --scenarios baseline
+./bin/bench -gateways ferrogateway
 ```
 
-Run only two gateways:
+Run only specific scenarios:
 
 ```bash
-python scripts/run_benchmarks.py --gateways ferrogateway,litellm
+./bin/bench -scenarios smoke,baseline
 ```
 
 Repeat each run 3 times and average results:
 
 ```bash
-python scripts/run_benchmarks.py --repeat 3
+./bin/bench -repeat 3
+# or: make bench-repeat
 ```
 
-Preview commands without executing:
+Preview the benchmark matrix without executing:
 
 ```bash
-python scripts/run_benchmarks.py --dry-run
+./bin/bench -dry-run
+# or: make bench-dry
 ```
 
 ## Scenarios
@@ -111,20 +203,28 @@ python scripts/run_benchmarks.py --dry-run
 
 ## Mock server
 
-`scripts/mock_server.py` is a zero-dependency stdlib server returning instant fixed responses. Use it to measure pure gateway overhead:
+`cmd/mockserver` is a zero-dependency Go HTTP server returning instant fixed responses. It eliminates upstream LLM latency so benchmarks measure gateway overhead only.
+
+Run locally:
 
 ```bash
-python scripts/mock_server.py --port 9000 --latency-ms 0
+./bin/mockserver --port 9000 --latency-ms 0
 ```
 
-Supports both blocking and SSE streaming (`stream: true`) matching the OpenAI API shape.
+Available endpoints:
+
+| Endpoint | Description |
+| :--- | :--- |
+| `GET /health` | Liveness probe (used by Docker healthcheck) |
+| `GET /v1/models` | Returns a minimal model list |
+| `POST /v1/chat/completions` | Blocking or SSE streaming (`"stream": true`) |
 
 ## Fair benchmark checklist
 
-- Use same model and token settings across all gateways.
+- Use the same model and token settings across all gateways.
 - Keep gateway deployments in similar regions/specs.
 - Warm up each gateway before measured runs.
-- Run each scenario multiple times (`--repeat 3`) and compare averaged results.
+- Run each scenario multiple times (`make bench-repeat`) and compare averaged results.
 - Avoid mixed background traffic during measurement windows.
 - Prefer isolated mode (mock server) for apples-to-apples gateway comparisons.
 

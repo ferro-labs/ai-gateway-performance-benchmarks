@@ -3,48 +3,50 @@
 # Spins up all gateways + a local mock server so benchmarks measure
 # gateway overhead only, not live LLM latency.
 #
-# Usage:
-#   docker compose up -d          # start all services
-#   docker compose up -d --profile kong  # also start Kong
-#   python scripts/run_benchmarks.py --gateways ferrogateway,litellm
+# Core services (always started):
+#   mock-server, ferrogateway, litellm
 #
-# Requires: OPENAI_API_KEY in your shell environment (used by LiteLLM
-# to configure its OpenAI model list; irrelevant when mock server is used).
+# Optional profiles (started with make setup / make up-kong / make up-portkey):
+#   --profile kong     → Kong AI Gateway (DB-less)
+#   --profile portkey  → Portkey open-source gateway
 #
-# When MOCK_SERVER_URL is set in .env each gateway's config should route
-# to http://mock-server:9000 instead of https://api.openai.com.
-# The ferrogateway and litellm services below use the mock by default.
-# For real OpenAI tests, remove or override the upstream env vars.
+# Quick start:
+#   make setup    — pull latest, build, start everything, wait healthy
+#   make bench-all — run all benchmarks
+#   make clean    — stop + remove containers/images/results/venv
+#
+# Images are always pulled at their latest tag on 'make setup'.
+# mock-server is built locally from Go source via Dockerfile.mockserver.
 
 services:
   # -----------------------------------------------------------------------
   # Local mock server — returns instant fixed responses.
   # Eliminates upstream LLM latency from measurements.
+  # Built from Go source via Dockerfile.mockserver (multi-stage).
   # -----------------------------------------------------------------------
   mock-server:
-    image: python:3.12-slim
-    command: python /app/scripts/mock_server.py --port 9000
-    volumes:
-      - .:/app:ro
+    build:
+      context: .
+      dockerfile: Dockerfile.mockserver
+    image: bench-mockserver:latest
     ports:
       - "9000:9000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/health')"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:9000/health"]
       interval: 5s
       timeout: 3s
       retries: 5
 
   # -----------------------------------------------------------------------
   # Ferro AI Gateway (product under test)
+  # Pulled from the official GHCR image — always latest on 'make setup'.
   # -----------------------------------------------------------------------
   ferrogateway:
-    build:
-      context: ../ai-gateway
-      dockerfile: Dockerfile
-    image: ferrogateway:bench
+    image: ghcr.io/ferro-labs/ai-gateway:latest
+    pull_policy: always
     environment:
       GATEWAY_CONFIG: /etc/ferrogw/config.yaml
-      # Point OpenAI provider to the mock server
+      # Point OpenAI provider to the mock server (isolated overhead mode)
       OPENAI_BASE_URL: http://mock-server:9000/v1
       OPENAI_API_KEY: mock-key
     volumes:
@@ -61,10 +63,11 @@ services:
       retries: 10
 
   # -----------------------------------------------------------------------
-  # LiteLLM proxy
+  # LiteLLM proxy — always pulls latest stable image on 'make setup'
   # -----------------------------------------------------------------------
   litellm:
     image: ghcr.io/berriai/litellm:main-stable
+    pull_policy: always
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     volumes:
       - ./configs/litellm.mock.config.yaml:/app/config.yaml:ro
@@ -82,11 +85,12 @@ services:
       retries: 10
 
   # -----------------------------------------------------------------------
-  # Kong AI Gateway (DB-less, in an optional profile to keep compose fast)
-  # Enable with: docker compose --profile kong up -d
+  # Kong AI Gateway (DB-less declarative config)
+  # Enable with: make up-kong  or  make setup  (always included in setup)
   # -----------------------------------------------------------------------
   kong:
-    image: kong:3.6
+    image: kong:latest
+    pull_policy: always
     profiles:
       - kong
     environment:
@@ -110,3 +114,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  # -----------------------------------------------------------------------
+  # Portkey open-source gateway
+  # Enable with: make up-portkey  or  make setup  (always included in setup)
+  #
+  # Requests route to the mock server via the x-portkey-custom-host header
+  # set in benchmarks.yaml. The 'mock-server' hostname resolves within the
+  # Docker network, so overhead measurements remain isolated.
+  # -----------------------------------------------------------------------
+  portkey:
+    image: portkeyai/gateway:latest
+    pull_policy: always
+    profiles:
+      - portkey
+    ports:
+      - "8787:8787"
+    depends_on:
+      mock-server:
+        condition: service_healthy
+    healthcheck:
+      # TCP check — portkey (Node.js) has no dedicated /health endpoint
+      test: ["CMD", "node", "-e",
+             "require('net').createConnection(8787,'localhost').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s

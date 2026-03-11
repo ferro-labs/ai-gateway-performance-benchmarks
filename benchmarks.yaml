@@ -1,5 +1,14 @@
 # Benchmark matrix for gateway comparison.
-# Fill URLs/keys via environment variables from .env.
+# Fill URLs/keys via environment variables from .env (see .env.example).
+#
+# This file controls Locust comparative benchmarks (scripts/run_benchmarks.py).
+# For high-VU throughput tests (k6) and peak RPS measurement (wrk), see:
+#   k6/chat_completions.js   — baseline, stress, peak_5k scenarios
+#   wrk/chat_completions.lua — peak RPS ceiling
+#
+# Add a new gateway: add an entry under `gateways:`.
+# Add a new scenario: add an entry under `scenarios:`.
+# No code changes needed.
 
 gateways:
   ferrogateway:
@@ -14,19 +23,23 @@ gateways:
     request_path: /v1/chat/completions
     model: ${MODEL}
 
+  kong:
+    base_url: ${KONG_URL}
+    api_key: ${KONG_API_KEY}
+    request_path: /v1/chat/completions
+    model: ${MODEL}
+
   portkey:
     base_url: ${PORTKEY_URL}
     api_key: ${PORTKEY_API_KEY}
     request_path: /v1/chat/completions
     model: ${MODEL}
     extra_headers:
+      # Tell the Portkey self-hosted container to route upstream requests to
+      # the local mock server (Docker-internal hostname: mock-server).
+      # Set PORTKEY_UPSTREAM_URL= in .env to skip the override (real upstream).
       x-portkey-provider: openai
-
-  kong:
-    base_url: ${KONG_URL}
-    api_key: ${KONG_API_KEY}
-    request_path: /v1/chat/completions
-    model: ${MODEL}
+      x-portkey-custom-host: ${PORTKEY_UPSTREAM_URL}
 
 scenarios:
   - name: smoke

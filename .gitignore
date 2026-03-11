@@ -1,4 +1,11 @@
-# Python
+# Go build artifacts
+bin/
+*.exe
+
+# Go module checksum (commit go.sum — do not ignore)
+# go.sum
+
+# Python (legacy — kept in case any py scripts remain)
 __pycache__/
 *.py[cod]
 *.pyo
@@ -10,7 +17,7 @@ dist/
 build/
 .eggs/
 
-# Virtual environments
+# Virtual environments (legacy)
 .venv/
 venv/
 env/
@@ -25,6 +32,9 @@ results/
 # Locust
 *.csv
 *.log
+
+# k6 JSON output
+*.json
 
 # macOS
 .DS_Store
