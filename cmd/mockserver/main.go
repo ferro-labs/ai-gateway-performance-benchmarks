@@ -4,7 +4,7 @@
 //
 // Usage:
 //
-//	mockserver [--port 9000] [--latency-ms 0]
+//	mockserver [--port 9000] [--latency-ms 0] [--stream-chunk-delay-ms 10]
 package main
 
 import (
@@ -14,15 +14,32 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"sync/atomic"
 	"time"
 )
 
 var latencyMs int
+var streamChunkDelayMs int
+var requestCount atomic.Int64
 
 func main() {
 	port := flag.Int("port", 9000, "Port to listen on")
 	flag.IntVar(&latencyMs, "latency-ms", 0, "Artificial latency added to every request (ms)")
+	flag.IntVar(&streamChunkDelayMs, "stream-chunk-delay-ms", 10, "Delay between SSE chunks (ms)")
 	flag.Parse()
+
+	// Log request rate periodically
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		var lastCount int64
+		for range ticker.C {
+			curr := requestCount.Load()
+			rps := float64(curr-lastCount) / 5.0
+			log.Printf("request rate: %.1f RPS (total: %d)", rps, curr)
+			lastCount = curr
+		}
+	}()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", handleHealth)
@@ -30,7 +47,7 @@ func main() {
 	mux.HandleFunc("/v1/chat/completions", handleChatCompletions)
 
 	addr := fmt.Sprintf(":%d", *port)
-	log.Printf("mock-server listening on %s  (latency=%dms)", addr, latencyMs)
+	log.Printf("mock-server listening on %s  (latency=%dms, stream-chunk-delay=%dms)", addr, latencyMs, streamChunkDelayMs)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
@@ -59,6 +76,8 @@ func handleModels(w http.ResponseWriter, _ *http.Request) {
 // handleChatCompletions — returns a blocking response or an SSE stream
 // depending on the "stream" field in the request body.
 func handleChatCompletions(w http.ResponseWriter, r *http.Request) {
+	requestCount.Add(1)
+
 	if latencyMs > 0 {
 		time.Sleep(time.Duration(latencyMs) * time.Millisecond)
 	}
@@ -81,6 +100,7 @@ func handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Connection", "keep-alive")
 	json.NewEncoder(w).Encode(map[string]any{
 		"id":      id,
 		"object":  "chat.completion",
@@ -134,7 +154,7 @@ func writeSSE(w http.ResponseWriter, id, model string) {
 		b, _ := json.Marshal(chunk)
 		fmt.Fprintf(w, "data: %s\n\n", b)
 		flusher.Flush()
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(time.Duration(streamChunkDelayMs) * time.Millisecond)
 	}
 
 	// Terminal chunk

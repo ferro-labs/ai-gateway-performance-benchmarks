@@ -13,6 +13,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"flag"
@@ -54,6 +55,7 @@ type ScenarioConfig struct {
 	Name      string `yaml:"name"`
 	Users     int    `yaml:"users"`
 	SpawnRate int    `yaml:"spawn_rate"`
+	Warmup    string `yaml:"warmup_duration"`
 	Duration  string `yaml:"duration"`
 	Prompt    string `yaml:"prompt"`
 	MaxTokens int    `yaml:"max_tokens"`
@@ -72,10 +74,14 @@ type Result struct {
 	Total    int64
 	Success  int64
 	Failed   int64
+	Min      float64
 	P50      float64
 	P95      float64
 	P99      float64
+	P999     float64
+	Max      float64
 	RPS      float64
+	TTFB     float64 // Time-to-first-byte for streaming (ms)
 }
 
 // ---------------------------------------------------------------------------
@@ -165,8 +171,12 @@ func main() {
 			}
 			r := runBenchmark(run.gateway, gw, sc, dur)
 			runResults = append(runResults, r)
-			fmt.Printf("    rps=%.1f  p50=%.1fms  p95=%.1fms  p99=%.1fms  success=%d  failed=%d\n",
+			fmt.Printf("    rps=%.1f  p50=%.1fms  p95=%.1fms  p99=%.1fms  success=%d  failed=%d",
 				r.RPS, r.P50, r.P95, r.P99, r.Success, r.Failed)
+			if r.TTFB > 0 {
+				fmt.Printf("  ttfb=%.1fms", r.TTFB)
+			}
+			fmt.Println()
 		}
 		allResults = append(allResults, averageResults(runResults))
 	}
@@ -186,9 +196,18 @@ func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.D
 	var total, success, failed int64
 	var mu sync.Mutex
 	var latencies []float64
+	var ttfbValues []float64
 
-	done := make(chan struct{})
-	time.AfterFunc(dur, func() { close(done) })
+	// Shared HTTP client with connection pooling across all VUs
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 10,
+			MaxConnsPerHost:     10,
+		},
+	}
+	defer client.CloseIdleConnections()
 
 	spawnRate := sc.SpawnRate
 	if spawnRate <= 0 {
@@ -196,21 +215,33 @@ func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.D
 	}
 	spawnInterval := time.Second / time.Duration(spawnRate)
 
+	done := make(chan struct{})
 	var wg sync.WaitGroup
+
+	// Spawn all VUs first, then start the timer
 	for range sc.Users {
 		time.Sleep(spawnInterval)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			client := &http.Client{Timeout: 30 * time.Second}
+
+			// Create a context with deadline for clean cancellation
+			ctx, cancel := context.WithCancel(context.Background())
+			go func() {
+				<-done
+				cancel()
+			}()
+
 			for {
 				select {
-				case <-done:
+				case <-ctx.Done():
 					return
 				default:
 				}
+
 				start := time.Now()
-				reqErr := sendRequest(client, url, gw, sc)
+				ttfb := float64(-1) // -1 means not set
+				reqErr := sendRequest(client, url, gw, sc, ctx, &ttfb)
 				elapsedMs := float64(time.Since(start).Microseconds()) / 1000.0
 
 				atomic.AddInt64(&total, 1)
@@ -222,17 +253,54 @@ func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.D
 
 				mu.Lock()
 				latencies = append(latencies, elapsedMs)
+				if ttfb >= 0 {
+					ttfbValues = append(ttfbValues, ttfb)
+				}
 				mu.Unlock()
 			}
 		}()
 	}
 
+	// Start timer after all VUs are spawned
+	time.AfterFunc(dur, func() { close(done) })
+
+	// Progress reporter — print stats every 30s for long-running benchmarks
+	progressDone := make(chan struct{})
+	go func() {
+		defer close(progressDone)
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		startTime := time.Now()
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				elapsed := time.Since(startTime).Truncate(time.Second)
+				s := atomic.LoadInt64(&success)
+				f := atomic.LoadInt64(&failed)
+				rps := float64(s) / elapsed.Seconds()
+				fmt.Printf("    [%s/%s] requests=%d  success=%d  failed=%d  rps=%.0f\n",
+					elapsed, dur, s+f, s, f, rps)
+			}
+		}
+	}()
+
 	wg.Wait()
+	<-progressDone
 
 	mu.Lock()
 	defer mu.Unlock()
 
-	p50, p95, p99 := percentiles(latencies)
+	min, p50, p95, p99, p999, max := percentiles(latencies)
+	var ttfbVal float64
+	if len(ttfbValues) > 0 {
+		ttfbVal = ttfbValues[0] // Use median TTFB
+		if len(ttfbValues) > 1 {
+			_, ttfbVal, _, _, _, _ = percentiles(ttfbValues)
+		}
+	}
+
 	rps := float64(success) / dur.Seconds()
 
 	return Result{
@@ -243,15 +311,20 @@ func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.D
 		Total:    total,
 		Success:  success,
 		Failed:   failed,
+		Min:      min,
 		P50:      p50,
 		P95:      p95,
 		P99:      p99,
+		P999:     p999,
+		Max:      max,
 		RPS:      rps,
+		TTFB:     ttfbVal,
 	}
 }
 
 // sendRequest fires one HTTP request and drains the response body.
-func sendRequest(client *http.Client, url string, gw GatewayConfig, sc ScenarioConfig) error {
+// For streaming responses, measures time-to-first-byte (TTFB).
+func sendRequest(client *http.Client, url string, gw GatewayConfig, sc ScenarioConfig, ctx context.Context, ttfb *float64) error {
 	payload := map[string]any{
 		"model": gw.Model,
 		"messages": []map[string]any{
@@ -265,7 +338,7 @@ func sendRequest(client *http.Client, url string, gw GatewayConfig, sc ScenarioC
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
@@ -277,11 +350,22 @@ func sendRequest(client *http.Client, url string, gw GatewayConfig, sc ScenarioC
 		req.Header.Set(k, v)
 	}
 
+	reqStart := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	// For streaming, record TTFB by reading first byte
+	if sc.Stream && ttfb != nil {
+		buf := make([]byte, 1)
+		if _, err := resp.Body.Read(buf); err != nil && err != io.EOF {
+			return err
+		}
+		*ttfb = float64(time.Since(reqStart).Microseconds()) / 1000.0 // TTFB in ms
+	}
+
 	io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 	if resp.StatusCode >= 400 {
@@ -294,18 +378,18 @@ func sendRequest(client *http.Client, url string, gw GatewayConfig, sc ScenarioC
 // Statistics helpers
 // ---------------------------------------------------------------------------
 
-func percentiles(data []float64) (p50, p95, p99 float64) {
+func percentiles(data []float64) (min, p50, p95, p99, p999, max float64) {
 	if len(data) == 0 {
-		return 0, 0, 0
+		return 0, 0, 0, 0, 0, 0
 	}
 	sorted := make([]float64, len(data))
 	copy(sorted, data)
 	sort.Float64s(sorted)
 	n := float64(len(sorted))
 	idx := func(pct float64) int {
-		return int(math.Min(float64(len(sorted)-1), math.Floor(n*pct)))
+		return int(math.Min(float64(len(sorted)-1), math.Ceil(n*pct)-1))
 	}
-	return sorted[idx(0.50)], sorted[idx(0.95)], sorted[idx(0.99)]
+	return sorted[0], sorted[idx(0.50)], sorted[idx(0.95)], sorted[idx(0.99)], sorted[idx(0.999)], sorted[len(sorted)-1]
 }
 
 func averageResults(results []Result) Result {
@@ -317,22 +401,31 @@ func averageResults(results []Result) Result {
 	}
 	avg := results[0]
 	for _, r := range results[1:] {
+		avg.Min += r.Min
 		avg.P50 += r.P50
 		avg.P95 += r.P95
 		avg.P99 += r.P99
+		avg.P999 += r.P999
+		avg.Max += r.Max
 		avg.RPS += r.RPS
 		avg.Success += r.Success
 		avg.Failed += r.Failed
 		avg.Total += r.Total
+		avg.TTFB += r.TTFB
 	}
 	n := float64(len(results))
+	avg.Min /= n
 	avg.P50 /= n
 	avg.P95 /= n
 	avg.P99 /= n
+	avg.P999 /= n
+	avg.Max /= n
 	avg.RPS /= n
-	avg.Success = int64(float64(avg.Success) / n)
-	avg.Failed = int64(float64(avg.Failed) / n)
-	avg.Total = int64(float64(avg.Total) / n)
+	avg.TTFB /= n
+	// Use proper rounding before int64 cast
+	avg.Success = int64(math.Round(float64(avg.Success) / n))
+	avg.Failed = int64(math.Round(float64(avg.Failed) / n))
+	avg.Total = int64(math.Round(float64(avg.Total) / n))
 	return avg
 }
 
@@ -354,9 +447,13 @@ func writeCSV(path string, results []Result) {
 	_ = w.Write([]string{
 		"gateway", "scenario", "users", "duration_s",
 		"total", "success", "failed",
-		"rps", "p50_ms", "p95_ms", "p99_ms",
+		"rps", "min_ms", "p50_ms", "p95_ms", "p99_ms", "p99.9_ms", "max_ms", "ttfb_ms",
 	})
 	for _, r := range results {
+		ttfbStr := ""
+		if r.TTFB > 0 {
+			ttfbStr = strconv.FormatFloat(r.TTFB, 'f', 2, 64)
+		}
 		_ = w.Write([]string{
 			r.Gateway, r.Scenario,
 			strconv.Itoa(r.Users),
@@ -365,9 +462,13 @@ func writeCSV(path string, results []Result) {
 			strconv.FormatInt(r.Success, 10),
 			strconv.FormatInt(r.Failed, 10),
 			strconv.FormatFloat(r.RPS, 'f', 2, 64),
+			strconv.FormatFloat(r.Min, 'f', 2, 64),
 			strconv.FormatFloat(r.P50, 'f', 2, 64),
 			strconv.FormatFloat(r.P95, 'f', 2, 64),
 			strconv.FormatFloat(r.P99, 'f', 2, 64),
+			strconv.FormatFloat(r.P999, 'f', 2, 64),
+			strconv.FormatFloat(r.Max, 'f', 2, 64),
+			ttfbStr,
 		})
 	}
 }
@@ -381,13 +482,18 @@ func writeMarkdown(path string, results []Result, timestamp string) {
 	defer f.Close()
 
 	fmt.Fprintf(f, "# Benchmark Results — %s\n\n", timestamp)
-	fmt.Fprintf(f, "| Gateway | Scenario | Users | RPS | P50 (ms) | P95 (ms) | P99 (ms) | Success | Failed |\n")
-	fmt.Fprintf(f, "|---------|----------|------:|----:|---------:|---------:|---------:|--------:|-------:|\n")
+	fmt.Fprintf(f, "Benchmark measured on %s.\n\n", time.Now().Format("2006-01-02 15:04:05 MST"))
+	fmt.Fprintf(f, "| Gateway | Scenario | Users | RPS | Min (ms) | P50 (ms) | P95 (ms) | P99 (ms) | P99.9 (ms) | Max (ms) | Success | Failed |\n")
+	fmt.Fprintf(f, "|---------|----------|------:|----:|---------:|---------:|---------:|---------:|----------:|--------:|--------:|-------:|\n")
 	for _, r := range results {
-		fmt.Fprintf(f, "| %s | %s | %d | %.1f | %.1f | %.1f | %.1f | %d | %d |\n",
+		ttfbStr := ""
+		if r.TTFB > 0 {
+			ttfbStr = fmt.Sprintf(" (TTFB: %.1fms)", r.TTFB)
+		}
+		fmt.Fprintf(f, "| %s | %s | %d | %.1f | %.2f | %.2f | %.2f | %.2f | %.2f | %.2f | %d | %d |%s\n",
 			r.Gateway, r.Scenario, r.Users,
-			r.RPS, r.P50, r.P95, r.P99,
-			r.Success, r.Failed)
+			r.RPS, r.Min, r.P50, r.P95, r.P99, r.P999, r.Max,
+			r.Success, r.Failed, ttfbStr)
 	}
 }
 

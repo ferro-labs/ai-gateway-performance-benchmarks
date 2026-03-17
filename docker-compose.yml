@@ -79,7 +79,7 @@ services:
       mock-server:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -134,9 +134,8 @@ services:
       mock-server:
         condition: service_healthy
     healthcheck:
-      # TCP check — portkey (Node.js) has no dedicated /health endpoint
-      test: ["CMD", "node", "-e",
-             "require('net').createConnection(8787,'localhost').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      # TCP probe — more reliable than Node.js check for minimal containers
+      test: ["CMD", "sh", "-c", "nc -z localhost 8787 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
