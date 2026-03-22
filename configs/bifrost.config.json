@@ -1,0 +1,17 @@
+{
+  "providers": {
+    "openai": {
+      "keys": [
+        {
+          "name": "mock-key",
+          "value": "mock-key",
+          "models": ["gpt-4o", "gpt-4o-mini"],
+          "weight": 1.0
+        }
+      ],
+      "network_config": {
+        "base_url": "http://localhost:9000/v1"
+      }
+    }
+  }
+}

@@ -41,8 +41,7 @@ gateways:
     request_path: /v1/chat/completions
     model: ${MODEL}
     extra_headers:
-      # Tell the Portkey self-hosted container to route upstream requests to
-      # the local mock server (Docker-internal hostname: mock-server).
+      # Tell Portkey to route upstream requests to the local mock server.
       # Set PORTKEY_UPSTREAM_URL= in .env to skip the override (real upstream).
       x-portkey-provider: openai
       x-portkey-custom-host: ${PORTKEY_UPSTREAM_URL}
@@ -91,3 +90,19 @@ scenarios:
     prompt: "Write three short sentences about distributed systems."
     max_tokens: 128
     stream: true
+
+  - name: high-concurrency-500
+    users: 500
+    spawn_rate: 50
+    warmup_duration: 10s
+    duration: 2m
+    prompt: "Return one word."
+    max_tokens: 4
+
+  - name: high-concurrency-1000
+    users: 1000
+    spawn_rate: 100
+    warmup_duration: 10s
+    duration: 2m
+    prompt: "Return one word."
+    max_tokens: 4

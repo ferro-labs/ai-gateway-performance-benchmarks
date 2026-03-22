@@ -1,40 +1,27 @@
 # Go build artifacts
 bin/
+/bench
+/mockserver
+/report
 *.exe
+*.test
 
-# Go module checksum (commit go.sum — do not ignore)
-# go.sum
-
-# Python (legacy — kept in case any py scripts remain)
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-*.egg
-*.egg-info/
-dist/
-build/
-.eggs/
-
-# Virtual environments (legacy)
+# Python virtualenv (LiteLLM)
 .venv/
-venv/
-env/
-ENV/
+.venv-litellm/
+.litellm-version
 
 # Environment / secrets
 .env
 
+# Setup marker
+.setup-complete
+
 # Benchmark results (generated output — commit selectively)
 results/
 
-# Locust
-*.csv
-*.log
-
 # k6 JSON output
-*.json
+*.log
 
 # macOS
 .DS_Store
@@ -44,6 +31,3 @@ results/
 
 # VS Code
 .vscode/
-
-# Docker
-*.dockerenv

@@ -1,6 +1,5 @@
 # Ferro AI Gateway config for benchmark comparison.
 # Run: ferrogw --config configs/ferrogateway.config.yaml
-# Or with Docker: see docker-compose.yml
 #
 # This config exposes a single OpenAI-compatible upstream via FerroGateway,
 # matching what LiteLLM and Kong are configured to do in this benchmark.

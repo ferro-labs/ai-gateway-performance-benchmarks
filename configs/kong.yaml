@@ -1,0 +1,19 @@
+# Kong DB-less declarative config for native benchmarking.
+# Routes /v1/chat/completions to the local mock server on localhost:9000.
+# Used by scripts/run-benchmarks.sh via KONG_DECLARATIVE_CONFIG env var.
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: llm-mock-upstream
+    url: http://localhost:9000
+    connect_timeout: 5000
+    read_timeout: 30000
+    write_timeout: 30000
+    routes:
+      - name: chat-completions
+        paths:
+          - /v1/chat/completions
+        methods:
+          - POST
+        strip_path: false

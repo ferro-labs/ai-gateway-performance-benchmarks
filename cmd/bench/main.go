@@ -161,8 +161,12 @@ func main() {
 			dur = 60 * time.Second
 		}
 
-		fmt.Printf("\n==> gateway=%-16s  scenario=%-20s  users=%d  duration=%s\n",
-			run.gateway, run.scenario, sc.Users, sc.Duration)
+		warmupStr := ""
+		if sc.Warmup != "" {
+			warmupStr = fmt.Sprintf("  warmup=%s", sc.Warmup)
+		}
+		fmt.Printf("\n==> gateway=%-16s  scenario=%-20s  users=%d  duration=%s%s\n",
+			run.gateway, run.scenario, sc.Users, sc.Duration, warmupStr)
 
 		var runResults []Result
 		for i := range *repeat {
@@ -202,9 +206,9 @@ func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.D
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
-			MaxIdleConns:        100,
-			MaxIdleConnsPerHost: 10,
-			MaxConnsPerHost:     10,
+			MaxIdleConns:        1000,
+			MaxIdleConnsPerHost: 500,
+			MaxConnsPerHost:     0, // unlimited
 		},
 	}
 	defer client.CloseIdleConnections()
@@ -215,10 +219,25 @@ func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.D
 	}
 	spawnInterval := time.Second / time.Duration(spawnRate)
 
+	// Parse warmup duration (0 = no warmup)
+	var warmupDur time.Duration
+	if sc.Warmup != "" {
+		if wd, err := time.ParseDuration(sc.Warmup); err == nil {
+			warmupDur = wd
+		}
+	}
+
+	// warming is 1 during warmup, 0 during measurement. VUs check this
+	// atomically to decide whether to record metrics.
+	var warming int32
+	if warmupDur > 0 {
+		atomic.StoreInt32(&warming, 1)
+	}
+
 	done := make(chan struct{})
 	var wg sync.WaitGroup
 
-	// Spawn all VUs first, then start the timer
+	// Spawn all VUs first, then run warmup, then start the measurement timer
 	for range sc.Users {
 		time.Sleep(spawnInterval)
 		wg.Add(1)
@@ -244,6 +263,11 @@ func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.D
 				reqErr := sendRequest(client, url, gw, sc, ctx, &ttfb)
 				elapsedMs := float64(time.Since(start).Microseconds()) / 1000.0
 
+				// Skip metric recording during warmup
+				if atomic.LoadInt32(&warming) == 1 {
+					continue
+				}
+
 				atomic.AddInt64(&total, 1)
 				if reqErr != nil {
 					atomic.AddInt64(&failed, 1)
@@ -261,7 +285,14 @@ func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.D
 		}()
 	}
 
-	// Start timer after all VUs are spawned
+	// Run warmup phase, then flip to measurement
+	if warmupDur > 0 {
+		fmt.Printf("    warmup %s...\n", warmupDur)
+		time.Sleep(warmupDur)
+		atomic.StoreInt32(&warming, 0)
+	}
+
+	// Start measurement timer after warmup completes
 	time.AfterFunc(dur, func() { close(done) })
 
 	// Progress reporter — print stats every 30s for long-running benchmarks
