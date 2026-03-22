@@ -18,18 +18,9 @@ case $ARCH in
 esac
 echo "  Platform: ${OS}/${ARCH}"
 
-# Get latest release version from GitHub API
-echo "  Fetching latest release..."
-LATEST=$(curl -fsSL \
-    https://api.github.com/repos/ferro-labs/ai-gateway/releases/latest \
-    | grep '"tag_name"' | head -1 | cut -d'"' -f4)
-
-if [ -z "$LATEST" ]; then
-    echo "ERROR: Could not determine latest Ferro release."
-    echo "  Check: https://github.com/ferro-labs/ai-gateway/releases"
-    exit 1
-fi
-echo "  Latest version: $LATEST"
+# Pin to specific release (pre-releases aren't returned by /releases/latest)
+LATEST="${FERRO_VERSION:-v1.0.0-rc.2}"
+echo "  Version: $LATEST"
 
 # Download binary — assets are tarballs: ferrogw_VERSION_OS_ARCH.tar.gz
 mkdir -p bin
