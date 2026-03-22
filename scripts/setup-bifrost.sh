@@ -62,18 +62,28 @@ if ! command -v go &>/dev/null; then
     exit 1
 fi
 
+# Use a specific tagged release for reproducible builds
+BIFROST_TAG="transports/v1.4.12"
 BIFROST_SRC=$(mktemp -d)
-echo "  Cloning github.com/maximhq/bifrost..."
+echo "  Cloning github.com/maximhq/bifrost @ $BIFROST_TAG..."
 
-if ! git clone --depth 1 https://github.com/maximhq/bifrost "$BIFROST_SRC" 2>/dev/null; then
+if ! git clone --depth 1 --branch "$BIFROST_TAG" https://github.com/maximhq/bifrost "$BIFROST_SRC" 2>/dev/null; then
     rm -rf "$BIFROST_SRC"
     echo "ERROR: git clone failed. Check network connectivity."
     echo "  Manual install: https://github.com/maximhq/bifrost"
     exit 1
 fi
 
-echo "  Building from source..."
-if (cd "$BIFROST_SRC" && go build -o "$OLDPWD/bin/bifrost" . 2>&1); then
+echo "  Building from source (transports/bifrost-http)..."
+REPO_ROOT="$(pwd)"
+
+# The HTTP transport embeds a UI directory. Create a minimal placeholder
+# so we can build without running the full Node.js UI build pipeline.
+mkdir -p "$BIFROST_SRC/transports/bifrost-http/ui"
+echo "<!-- benchmark build -->" > "$BIFROST_SRC/transports/bifrost-http/ui/index.html"
+
+if (cd "$BIFROST_SRC/transports/bifrost-http" && \
+    CGO_ENABLED=1 GOWORK=off go build -ldflags="-w -s" -trimpath -o "$REPO_ROOT/bin/bifrost" . 2>&1); then
     rm -rf "$BIFROST_SRC"
     chmod +x bin/bifrost
     echo "  Bifrost built from source"

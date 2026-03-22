@@ -37,6 +37,14 @@ fi
 
 echo "  Python: $PYTHON ($PY_VERSION)"
 
+# Ensure python3-venv is installed (Debian/Ubuntu ship without ensurepip)
+if ! $PYTHON -m ensurepip --version &>/dev/null 2>&1; then
+    PY_SHORT="${PY_MAJOR}.${PY_MINOR}"
+    echo "  Installing python${PY_SHORT}-venv (required on Debian)..."
+    sudo apt-get install -y "python${PY_SHORT}-venv" 2>/dev/null || \
+        sudo apt-get install -y python3-venv 2>/dev/null || true
+fi
+
 # Create or reuse virtualenv
 if [ ! -d "$VENV_DIR" ]; then
     echo "  Creating virtualenv: $VENV_DIR"

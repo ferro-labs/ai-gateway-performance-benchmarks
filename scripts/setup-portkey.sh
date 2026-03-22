@@ -14,8 +14,8 @@ fi
 NODE_VERSION=$(node --version)
 echo "Node.js: $NODE_VERSION"
 
-# Install latest Portkey gateway globally
-npm install -g @portkey-ai/gateway
+# Install latest Portkey gateway globally (sudo needed for system Node.js)
+sudo npm install -g @portkey-ai/gateway
 
 # Get installed version
 INSTALLED=$(npm list -g @portkey-ai/gateway --depth=0 2>/dev/null \
