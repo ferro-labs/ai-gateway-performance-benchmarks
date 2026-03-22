@@ -34,6 +34,7 @@
 #   - LiteLLM (Python venv)
 #   - Bifrost binary
 #   - Kong (native package, DB-less mode)
+#   - Portkey (Node.js, npm global)
 
 set -euo pipefail
 
@@ -44,7 +45,7 @@ cd "$REPO_DIR"
 # ---------------------------------------------------------------------------
 # Defaults
 # ---------------------------------------------------------------------------
-DEFAULT_GATEWAYS="ferrogateway,litellm,bifrost,kong"
+DEFAULT_GATEWAYS="ferrogateway,bifrost,litellm,kong,portkey"
 GATEWAYS_STR=""
 SCENARIOS_STR=""
 REPEAT=1
@@ -59,7 +60,7 @@ usage() {
 Usage: ./scripts/run-benchmarks.sh [OPTIONS]
 
 Options:
-  --gateways LIST   Comma-separated gateway names (default: ferrogateway,litellm,bifrost,kong)
+  --gateways LIST   Comma-separated gateway names (default: ferrogateway,bifrost,litellm,kong,portkey)
   --scenarios LIST  Comma-separated scenario names (default: all from benchmarks.yaml)
   --repeat N        Run each benchmark N times and average (default: 1, use 3 for publication)
   -h, --help        Show this help
@@ -292,6 +293,34 @@ start_kong() {
     wait_healthy "http://localhost:8001/status" "kong" 30
 }
 
+start_portkey() {
+    local gateway_entry
+    gateway_entry=$(npm root -g 2>/dev/null)/@portkey-ai/gateway/build/start-server.js
+
+    if [ ! -f "$gateway_entry" ]; then
+        # Try npx as fallback
+        if command -v npx &>/dev/null; then
+            echo "  Using npx to run Portkey gateway"
+            PORT=8787 PORTKEY_CONFIG_PATH="$(pwd)/configs/portkey.native.config.json" \
+                npx @portkey-ai/gateway &
+            GW_PID=$!
+            echo "  Started portkey via npx (PID $GW_PID)"
+            wait_healthy "http://localhost:8787" "portkey" 60
+            return 0
+        fi
+        echo "  SKIP: Portkey gateway not found."
+        echo "        Install: make setup-portkey"
+        return 1
+    fi
+    echo "  Entry: $gateway_entry"
+
+    PORTKEY_CONFIG_PATH="$(pwd)/configs/portkey.native.config.json" \
+        node "$gateway_entry" --port=8787 &
+    GW_PID=$!
+    echo "  Started portkey (PID $GW_PID)"
+    wait_healthy "http://localhost:8787" "portkey" 60
+}
+
 # ---------------------------------------------------------------------------
 # Helper: merge per-gateway CSVs into a combined file
 # ---------------------------------------------------------------------------
@@ -351,8 +380,8 @@ echo ""
 # ---------------------------------------------------------------------------
 # Step 2: Start mock server
 # ---------------------------------------------------------------------------
-echo "==> [2/5] Starting mock server on :9000..."
-./bin/mockserver --port 9000 &
+echo "==> [2/5] Starting mock server on :9000 (60ms latency)..."
+./bin/mockserver --port 9000 --latency 60ms &
 MOCK_PID=$!
 echo "  Mock server started (PID $MOCK_PID)"
 wait_healthy "http://localhost:9000/health" "mock-server" 15
@@ -379,6 +408,7 @@ for GW in "${GATEWAYS[@]}"; do
         litellm)      start_litellm || started=false ;;
         bifrost)      start_bifrost || started=false ;;
         kong)         start_kong || started=false ;;
+        portkey)      start_portkey || started=false ;;
         *)
             echo "  Unknown gateway: $GW — skipping"
             SKIPPED+=("$GW")
@@ -393,7 +423,20 @@ for GW in "${GATEWAYS[@]}"; do
 
     # Run bench
     echo ""
-    BENCH_ARGS="-config benchmarks.yaml -dotenv .env -out-dir $RESULTS_DIR -gateways $GW -repeat $REPEAT"
+    # Determine PID for resource monitoring
+    local bench_pid_arg=""
+    if [ "$GW" = "kong" ]; then
+        # Kong manages its own workers; find master PID
+        local kong_pid
+        kong_pid=$(pgrep -f "nginx.*kong" | head -1 || true)
+        if [ -n "$kong_pid" ]; then
+            bench_pid_arg="-gateway-pid $kong_pid"
+        fi
+    elif [ -n "$GW_PID" ]; then
+        bench_pid_arg="-gateway-pid $GW_PID"
+    fi
+
+    BENCH_ARGS="-config benchmarks.yaml -dotenv .env -out-dir $RESULTS_DIR -gateways $GW -repeat $REPEAT -mock-latency 60 $bench_pid_arg"
     if [ -n "$SCENARIOS_STR" ]; then
         BENCH_ARGS="$BENCH_ARGS -scenarios $SCENARIOS_STR"
     fi
@@ -406,8 +449,8 @@ for GW in "${GATEWAYS[@]}"; do
     # Stop gateway, let OS release ports
     echo ""
     stop_gateway "$GW"
-    echo "  Sleeping 5s for OS port release..."
-    sleep 5
+    echo "  Sleeping 10s for OS port release..."
+    sleep 10
 
     echo "=== $GW done ==="
 done

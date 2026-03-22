@@ -4,7 +4,7 @@
 //
 // Usage:
 //
-//	mockserver [--port 9000] [--latency-ms 0] [--stream-chunk-delay-ms 10]
+//	mockserver [--port 9000] [--latency 60ms] [--stream-chunk-delay-ms 10]
 package main
 
 import (
@@ -18,13 +18,13 @@ import (
 	"time"
 )
 
-var latencyMs int
+var latency time.Duration
 var streamChunkDelayMs int
 var requestCount atomic.Int64
 
 func main() {
 	port := flag.Int("port", 9000, "Port to listen on")
-	flag.IntVar(&latencyMs, "latency-ms", 0, "Artificial latency added to every request (ms)")
+	flag.DurationVar(&latency, "latency", 0, "Artificial latency added to every request (e.g. 60ms, 0ms)")
 	flag.IntVar(&streamChunkDelayMs, "stream-chunk-delay-ms", 10, "Delay between SSE chunks (ms)")
 	flag.Parse()
 
@@ -47,7 +47,7 @@ func main() {
 	mux.HandleFunc("/v1/chat/completions", handleChatCompletions)
 
 	addr := fmt.Sprintf(":%d", *port)
-	log.Printf("mock-server listening on %s  (latency=%dms, stream-chunk-delay=%dms)", addr, latencyMs, streamChunkDelayMs)
+	log.Printf("mock-server listening on %s  (latency=%s, stream-chunk-delay=%dms)", addr, latency, streamChunkDelayMs)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
@@ -78,8 +78,8 @@ func handleModels(w http.ResponseWriter, _ *http.Request) {
 func handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	requestCount.Add(1)
 
-	if latencyMs > 0 {
-		time.Sleep(time.Duration(latencyMs) * time.Millisecond)
+	if latency > 0 {
+		time.Sleep(latency)
 	}
 
 	var req map[string]any

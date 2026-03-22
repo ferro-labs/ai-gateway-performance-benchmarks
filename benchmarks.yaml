@@ -106,3 +106,59 @@ scenarios:
     duration: 2m
     prompt: "Return one word."
     max_tokens: 4
+
+  # ── Competitor-comparable scenarios ──────────────────────────────────────
+
+  # Primary comparison — matches Bifrost's published test exactly
+  - name: bifrost-comparable-500rps
+    users: 50
+    spawn_rate: 10
+    target_rps: 500
+    warmup_duration: 60s
+    duration: 5m
+    prompt: "Return one short sentence."
+    max_tokens: 64
+    notes: "Matches Bifrost: 500 RPS, 50 VUs, 60ms mock upstream"
+
+  # Matches Kong's test (high concurrency)
+  - name: kong-comparable-stress
+    users: 200
+    spawn_rate: 30
+    target_rps: 2000
+    warmup_duration: 60s
+    duration: 5m
+    prompt: "Return one short sentence."
+    max_tokens: 64
+    notes: "High concurrency stress matching Kong's EKS benchmark profile"
+
+  # Bifrost stress test level
+  - name: stress-5krps
+    users: 300
+    spawn_rate: 50
+    target_rps: 5000
+    warmup_duration: 60s
+    duration: 3m
+    prompt: "Return one short sentence."
+    max_tokens: 64
+    notes: "Bifrost claims 11µs overhead and 100% success at this level"
+
+  # Throughput ceiling — find our max RPS
+  - name: throughput-ceiling
+    users: 500
+    spawn_rate: 50
+    warmup_duration: 60s
+    duration: 3m
+    prompt: "Return one short sentence."
+    max_tokens: 32
+    notes: "Ramp to find saturation point of each gateway"
+
+  # Streaming comparison
+  - name: streaming-comparison
+    users: 50
+    spawn_rate: 10
+    warmup_duration: 60s
+    duration: 5m
+    prompt: "Write three short sentences about distributed systems."
+    max_tokens: 128
+    stream: true
+    notes: "SSE streaming overhead comparison"

@@ -33,6 +33,7 @@ run_setup "Ferro Gateway"          "$SCRIPT_DIR/setup-ferro.sh"
 run_setup "LiteLLM"                "$SCRIPT_DIR/setup-litellm.sh"
 run_setup "Bifrost"                "$SCRIPT_DIR/setup-bifrost.sh"
 run_setup "Kong"                   "$SCRIPT_DIR/setup-kong.sh"
+run_setup "Portkey"                "$SCRIPT_DIR/setup-portkey.sh"
 
 # Create .env if missing
 if [ ! -f .env ]; then
@@ -57,6 +58,7 @@ if [ ${#FAILED[@]} -gt 0 ]; then
             *Lite*)   echo "    bash scripts/setup-litellm.sh" ;;
             *Bifrost*)echo "    bash scripts/setup-bifrost.sh" ;;
             *Kong*)   echo "    bash scripts/setup-kong.sh" ;;
+            *Portkey*)echo "    bash scripts/setup-portkey.sh" ;;
         esac
     done
     exit 1

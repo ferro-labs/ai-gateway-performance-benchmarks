@@ -10,6 +10,7 @@ bin/
 .venv/
 .venv-litellm/
 .litellm-version
+.portkey-version
 
 # Environment / secrets
 .env

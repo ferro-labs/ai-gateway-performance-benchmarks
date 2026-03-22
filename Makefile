@@ -16,8 +16,8 @@ BIN_DIR      := bin
 RESULTS_DIR  := results
 
 .PHONY: help build \
-        setup setup-mockserver setup-ferro setup-litellm setup-bifrost setup-kong \
-        bench bench-ferrogateway bench-litellm bench-bifrost bench-kong \
+        setup setup-mockserver setup-ferro setup-litellm setup-bifrost setup-kong setup-portkey \
+        bench bench-ferrogateway bench-litellm bench-bifrost bench-kong bench-portkey \
         bench-repeat bench-dry \
         bench-k6 bench-k6-baseline bench-k6-peak \
         bench-wrk bench-wrk-light \
@@ -60,6 +60,9 @@ setup-bifrost: ## Install latest Bifrost binary
 setup-kong: ## Install latest Kong natively (apt)
 	bash scripts/setup-kong.sh
 
+setup-portkey: ## Install latest Portkey gateway (Node.js)
+	bash scripts/setup-portkey.sh
+
 # ---------------------------------------------------------------------------
 # Benchmarks — native process isolation
 # ---------------------------------------------------------------------------
@@ -78,6 +81,9 @@ bench-bifrost: ## Benchmark Bifrost only
 
 bench-kong: ## Benchmark Kong only
 	./scripts/run-benchmarks.sh --gateways kong
+
+bench-portkey: ## Benchmark Portkey only
+	./scripts/run-benchmarks.sh --gateways portkey
 
 bench-repeat: ## Full benchmark suite, 3 runs averaged (publication quality)
 	./scripts/run-benchmarks.sh --repeat 3
@@ -131,5 +137,5 @@ report: ## Generate Markdown + JSON report from latest results
 # ---------------------------------------------------------------------------
 
 clean: ## Remove binaries, results, virtualenv, and setup marker
-	rm -rf $(BIN_DIR) $(RESULTS_DIR) .venv-litellm .setup-complete .litellm-version
+	rm -rf $(BIN_DIR) $(RESULTS_DIR) .venv-litellm .setup-complete .litellm-version .portkey-version
 	@echo "Clean complete."

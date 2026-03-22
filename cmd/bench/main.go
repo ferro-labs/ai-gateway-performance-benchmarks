@@ -55,11 +55,13 @@ type ScenarioConfig struct {
 	Name      string `yaml:"name"`
 	Users     int    `yaml:"users"`
 	SpawnRate int    `yaml:"spawn_rate"`
+	TargetRPS int    `yaml:"target_rps"` // Informational — VUs run at max rate
 	Warmup    string `yaml:"warmup_duration"`
 	Duration  string `yaml:"duration"`
 	Prompt    string `yaml:"prompt"`
 	MaxTokens int    `yaml:"max_tokens"`
 	Stream    bool   `yaml:"stream"`
+	Notes     string `yaml:"notes"`
 }
 
 // ---------------------------------------------------------------------------
@@ -82,6 +84,12 @@ type Result struct {
 	Max      float64
 	RPS      float64
 	TTFB     float64 // Time-to-first-byte for streaming (ms)
+	// Resource usage
+	MinMemMB    float64
+	MaxMemMB    float64
+	AvgMemMB    float64
+	AvgCPUPct   float64
+	OverheadUS  float64 // gateway_overhead_us = (p50_ms - mock_latency_ms) * 1000
 }
 
 // ---------------------------------------------------------------------------
@@ -96,6 +104,8 @@ func main() {
 	scenarioStr := flag.String("scenarios", "", "Comma-separated list of scenarios (default: all)")
 	dryRun := flag.Bool("dry-run", false, "Preview matrix without running")
 	repeat := flag.Int("repeat", 1, "Repeat each benchmark N times and average results")
+	gatewayPID := flag.Int("gateway-pid", 0, "PID of gateway process to monitor for memory/CPU")
+	mockLatencyMS := flag.Float64("mock-latency", 60, "Mock server latency in ms (for overhead calculation)")
 	flag.Parse()
 
 	// Load .env — must happen before os.ExpandEnv on the config YAML
@@ -173,12 +183,15 @@ func main() {
 			if *repeat > 1 {
 				fmt.Printf("    run %d/%d...\n", i+1, *repeat)
 			}
-			r := runBenchmark(run.gateway, gw, sc, dur)
+			r := runBenchmark(run.gateway, gw, sc, dur, *gatewayPID, *mockLatencyMS)
 			runResults = append(runResults, r)
-			fmt.Printf("    rps=%.1f  p50=%.1fms  p95=%.1fms  p99=%.1fms  success=%d  failed=%d",
-				r.RPS, r.P50, r.P95, r.P99, r.Success, r.Failed)
+			fmt.Printf("    rps=%.1f  p50=%.1fms  p95=%.1fms  p99=%.1fms  overhead=%.0fµs  success=%d  failed=%d",
+				r.RPS, r.P50, r.P95, r.P99, r.OverheadUS, r.Success, r.Failed)
 			if r.TTFB > 0 {
 				fmt.Printf("  ttfb=%.1fms", r.TTFB)
+			}
+			if r.AvgMemMB > 0 {
+				fmt.Printf("  mem=%.0fMB  cpu=%.0f%%", r.AvgMemMB, r.AvgCPUPct)
 			}
 			fmt.Println()
 		}
@@ -194,7 +207,7 @@ func main() {
 // Benchmark runner
 // ---------------------------------------------------------------------------
 
-func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.Duration) Result {
+func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.Duration, gatewayPID int, mockLatencyMS float64) Result {
 	url := gw.BaseURL + gw.RequestPath
 
 	var total, success, failed int64
@@ -236,6 +249,40 @@ func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.D
 
 	done := make(chan struct{})
 	var wg sync.WaitGroup
+
+	// Resource sampling goroutine — samples memory/CPU from /proc every 5s
+	var resourceMu sync.Mutex
+	var memSamples []float64
+	var cpuSamples []float64
+	if gatewayPID > 0 {
+		go func() {
+			ticker := time.NewTicker(5 * time.Second)
+			defer ticker.Stop()
+			var prevCPUTotal, prevTimestamp int64
+			for {
+				select {
+				case <-done:
+					return
+				case <-ticker.C:
+					if mem := readVmRSS(gatewayPID); mem > 0 {
+						resourceMu.Lock()
+						memSamples = append(memSamples, mem)
+						resourceMu.Unlock()
+					}
+					if cpuPct, cpuTotal, ts := readCPUUsage(gatewayPID, prevCPUTotal, prevTimestamp); cpuPct >= 0 {
+						resourceMu.Lock()
+						cpuSamples = append(cpuSamples, cpuPct)
+						resourceMu.Unlock()
+						prevCPUTotal = cpuTotal
+						prevTimestamp = ts
+					} else {
+						prevCPUTotal = cpuTotal
+						prevTimestamp = ts
+					}
+				}
+			}
+		}()
+	}
 
 	// Spawn all VUs first, then run warmup, then start the measurement timer
 	for range sc.Users {
@@ -334,22 +381,60 @@ func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.D
 
 	rps := float64(success) / dur.Seconds()
 
+	// Compute resource usage
+	var minMem, maxMem, avgMem, avgCPU float64
+	resourceMu.Lock()
+	if len(memSamples) > 0 {
+		minMem = memSamples[0]
+		maxMem = memSamples[0]
+		sum := 0.0
+		for _, m := range memSamples {
+			if m < minMem {
+				minMem = m
+			}
+			if m > maxMem {
+				maxMem = m
+			}
+			sum += m
+		}
+		avgMem = sum / float64(len(memSamples))
+	}
+	if len(cpuSamples) > 0 {
+		sum := 0.0
+		for _, c := range cpuSamples {
+			sum += c
+		}
+		avgCPU = sum / float64(len(cpuSamples))
+	}
+	resourceMu.Unlock()
+
+	// Gateway overhead = (p50 - mock_latency) * 1000 µs
+	overheadUS := (p50 - mockLatencyMS) * 1000
+	if overheadUS < 0 {
+		overheadUS = 0
+	}
+
 	return Result{
-		Gateway:  gwName,
-		Scenario: sc.Name,
-		Users:    sc.Users,
-		Duration: dur,
-		Total:    total,
-		Success:  success,
-		Failed:   failed,
-		Min:      min,
-		P50:      p50,
-		P95:      p95,
-		P99:      p99,
-		P999:     p999,
-		Max:      max,
-		RPS:      rps,
-		TTFB:     ttfbVal,
+		Gateway:    gwName,
+		Scenario:   sc.Name,
+		Users:      sc.Users,
+		Duration:   dur,
+		Total:      total,
+		Success:    success,
+		Failed:     failed,
+		Min:        min,
+		P50:        p50,
+		P95:        p95,
+		P99:        p99,
+		P999:       p999,
+		Max:        max,
+		RPS:        rps,
+		TTFB:       ttfbVal,
+		MinMemMB:   minMem,
+		MaxMemMB:   maxMem,
+		AvgMemMB:   avgMem,
+		AvgCPUPct:  avgCPU,
+		OverheadUS: overheadUS,
 	}
 }
 
@@ -406,6 +491,61 @@ func sendRequest(client *http.Client, url string, gw GatewayConfig, sc ScenarioC
 }
 
 // ---------------------------------------------------------------------------
+// /proc resource sampling
+// ---------------------------------------------------------------------------
+
+// readVmRSS reads VmRSS from /proc/{pid}/status and returns MB.
+func readVmRSS(pid int) float64 {
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/status", pid))
+	if err != nil {
+		return 0
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "VmRSS:") {
+			fields := strings.Fields(line)
+			if len(fields) >= 2 {
+				kb, _ := strconv.ParseFloat(fields[1], 64)
+				return kb / 1024.0 // kB → MB
+			}
+		}
+	}
+	return 0
+}
+
+// readCPUUsage reads /proc/{pid}/stat and computes CPU percentage since last sample.
+// Returns (cpuPct, totalTicks, timestampNano). cpuPct is -1 on first call.
+func readCPUUsage(pid int, prevTotal int64, prevTimestamp int64) (float64, int64, int64) {
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
+	if err != nil {
+		return -1, prevTotal, prevTimestamp
+	}
+
+	// Fields: pid (comm) state ppid ... utime(13) stime(14)
+	fields := strings.Fields(string(data))
+	if len(fields) < 15 {
+		return -1, prevTotal, prevTimestamp
+	}
+	utime, _ := strconv.ParseInt(fields[13], 10, 64)
+	stime, _ := strconv.ParseInt(fields[14], 10, 64)
+	totalTicks := utime + stime
+	now := time.Now().UnixNano()
+
+	if prevTimestamp == 0 {
+		return -1, totalTicks, now
+	}
+
+	ticksPerSec := int64(100) // standard USER_HZ on Linux
+	deltaTicks := totalTicks - prevTotal
+	deltaTime := float64(now-prevTimestamp) / 1e9 // seconds
+	if deltaTime <= 0 {
+		return -1, totalTicks, now
+	}
+
+	cpuPct := (float64(deltaTicks) / float64(ticksPerSec)) / deltaTime * 100.0
+	return cpuPct, totalTicks, now
+}
+
+// ---------------------------------------------------------------------------
 // Statistics helpers
 // ---------------------------------------------------------------------------
 
@@ -443,6 +583,11 @@ func averageResults(results []Result) Result {
 		avg.Failed += r.Failed
 		avg.Total += r.Total
 		avg.TTFB += r.TTFB
+		avg.MinMemMB += r.MinMemMB
+		avg.MaxMemMB += r.MaxMemMB
+		avg.AvgMemMB += r.AvgMemMB
+		avg.AvgCPUPct += r.AvgCPUPct
+		avg.OverheadUS += r.OverheadUS
 	}
 	n := float64(len(results))
 	avg.Min /= n
@@ -453,6 +598,11 @@ func averageResults(results []Result) Result {
 	avg.Max /= n
 	avg.RPS /= n
 	avg.TTFB /= n
+	avg.MinMemMB /= n
+	avg.MaxMemMB /= n
+	avg.AvgMemMB /= n
+	avg.AvgCPUPct /= n
+	avg.OverheadUS /= n
 	// Use proper rounding before int64 cast
 	avg.Success = int64(math.Round(float64(avg.Success) / n))
 	avg.Failed = int64(math.Round(float64(avg.Failed) / n))
@@ -479,11 +629,14 @@ func writeCSV(path string, results []Result) {
 		"gateway", "scenario", "users", "duration_s",
 		"total", "success", "failed",
 		"rps", "min_ms", "p50_ms", "p95_ms", "p99_ms", "p99.9_ms", "max_ms", "ttfb_ms",
+		"overhead_us", "min_memory_mb", "max_memory_mb", "avg_memory_mb", "avg_cpu_percent",
 	})
 	for _, r := range results {
-		ttfbStr := ""
-		if r.TTFB > 0 {
-			ttfbStr = strconv.FormatFloat(r.TTFB, 'f', 2, 64)
+		optFloat := func(v float64) string {
+			if v > 0 {
+				return strconv.FormatFloat(v, 'f', 2, 64)
+			}
+			return ""
 		}
 		_ = w.Write([]string{
 			r.Gateway, r.Scenario,
@@ -499,7 +652,12 @@ func writeCSV(path string, results []Result) {
 			strconv.FormatFloat(r.P99, 'f', 2, 64),
 			strconv.FormatFloat(r.P999, 'f', 2, 64),
 			strconv.FormatFloat(r.Max, 'f', 2, 64),
-			ttfbStr,
+			optFloat(r.TTFB),
+			optFloat(r.OverheadUS),
+			optFloat(r.MinMemMB),
+			optFloat(r.MaxMemMB),
+			optFloat(r.AvgMemMB),
+			optFloat(r.AvgCPUPct),
 		})
 	}
 }
