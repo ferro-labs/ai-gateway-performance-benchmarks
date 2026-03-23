@@ -212,6 +212,8 @@ start_ferrogateway() {
     GATEWAY_CONFIG=configs/ferrogateway.config.yaml \
     OPENAI_BASE_URL=http://localhost:9000/v1 \
     OPENAI_API_KEY=mock-key \
+    LOG_LEVEL=error \
+    ENABLE_PPROF=false \
         "$bin" &
     GW_PID=$!
     echo "  Started ferrogateway (PID $GW_PID)"
@@ -380,8 +382,8 @@ echo ""
 # ---------------------------------------------------------------------------
 # Step 2: Start mock server
 # ---------------------------------------------------------------------------
-echo "==> [2/5] Starting mock server on :9000 (60ms latency)..."
-./bin/mockserver --port 9000 --latency 60ms &
+echo "==> [2/5] Starting mock server on :9000 (60ms latency, no stream chunk delay)..."
+./bin/mockserver --port 9000 --latency 60ms --stream-chunk-delay-ms 0 &
 MOCK_PID=$!
 echo "  Mock server started (PID $MOCK_PID)"
 wait_healthy "http://localhost:9000/health" "mock-server" 15
@@ -424,10 +426,9 @@ for GW in "${GATEWAYS[@]}"; do
     # Run bench
     echo ""
     # Determine PID for resource monitoring
-    local bench_pid_arg=""
+    bench_pid_arg=""
     if [ "$GW" = "kong" ]; then
         # Kong manages its own workers; find master PID
-        local kong_pid
         kong_pid=$(pgrep -f "nginx.*kong" | head -1 || true)
         if [ -n "$kong_pid" ]; then
             bench_pid_arg="-gateway-pid $kong_pid"
