@@ -261,11 +261,15 @@ start_bifrost() {
     fi
     echo "  Binary: $bin"
 
-    APP_HOST=0.0.0.0 \
-    APP_PORT=8081 \
-    LOG_LEVEL=warn \
-    CONFIG_PATH=configs/bifrost.config.json \
-        "$bin" &
+    # Bifrost v1.0.0 requires --app-dir pointing to directory
+    # containing config.json — not a direct file path
+    mkdir -p /tmp/bifrost-bench
+    cp configs/bifrost.config.json /tmp/bifrost-bench/config.json
+    "$bin" \
+        --app-dir /tmp/bifrost-bench \
+        --host 0.0.0.0 \
+        --port 8081 \
+        --log-level error 2>/dev/null &
     GW_PID=$!
     echo "  Started bifrost (PID $GW_PID)"
     wait_healthy "http://localhost:8081/health" "bifrost" 30

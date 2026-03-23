@@ -21,7 +21,7 @@ gateways:
     base_url: ${BIFROST_URL}
     api_key: ${BIFROST_API_KEY}
     request_path: /v1/chat/completions
-    model: ${MODEL}
+    model: ${BIFROST_MODEL}
 
   litellm:
     base_url: ${LITELLM_URL}

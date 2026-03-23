@@ -1,4 +1,5 @@
 {
+  "$schema": "https://www.getbifrost.ai/schema",
   "providers": {
     "openai": {
       "keys": [
@@ -10,7 +11,7 @@
         }
       ],
       "network_config": {
-        "base_url": "http://localhost:9000/v1"
+        "base_url": "http://localhost:9000"
       }
     }
   }
