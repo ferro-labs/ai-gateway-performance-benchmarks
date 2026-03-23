@@ -248,7 +248,8 @@ start_litellm() {
     GW_PID=$!
     echo "  Started litellm (PID $GW_PID)"
     # LiteLLM takes longer to start (Python + model loading)
-    wait_healthy "http://localhost:4000/health" "litellm" 60
+    # Use /health/liveliness which doesn't require auth (master_key protects /health)
+    wait_healthy "http://localhost:4000/health/liveliness" "litellm" 60
 }
 
 start_bifrost() {
@@ -284,6 +285,9 @@ start_kong() {
     echo "  Binary: $(command -v kong)"
 
     # Kong requires absolute path for declarative_config
+    # Use a writable prefix dir (default /usr/local/kong may not be writable)
+    export KONG_PREFIX=/tmp/kong-bench
+    mkdir -p "$KONG_PREFIX"
     export KONG_DATABASE=off
     export KONG_DECLARATIVE_CONFIG="$(pwd)/configs/kong.yaml"
     export KONG_PROXY_LISTEN="0.0.0.0:8000"
