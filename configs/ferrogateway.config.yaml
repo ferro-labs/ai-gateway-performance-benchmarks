@@ -1,7 +1,7 @@
-# Ferro AI Gateway config for benchmark comparison.
+# Ferro Labs AI Gateway config for benchmark comparison.
 # Run: ferrogw --config configs/ferrogateway.config.yaml
 #
-# This config exposes a single OpenAI-compatible upstream via FerroGateway,
+# This config exposes a single OpenAI-compatible upstream via Ferro Labs AI Gateway,
 # matching what LiteLLM and Kong are configured to do in this benchmark.
 strategy:
   mode: single

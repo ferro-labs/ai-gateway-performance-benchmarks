@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Reproducible benchmarking suite that compares **Ferro AI Gateway** against
+Reproducible benchmarking suite that compares **Ferro Labs AI Gateway** against
 **LiteLLM**, **Bifrost**, and **Kong** under identical load profiles.
 All gateways run as native processes on the same machine, ensuring
 µs-level measurements are accurate and not masked by networking overhead.
@@ -63,7 +63,7 @@ ai-gateway-performance-benchmarks/
 
 | Gateway | Port | Config |
 |---|---:|---|
-| Ferro AI Gateway | 8080 | `configs/ferrogateway.config.yaml` |
+| Ferro Labs AI Gateway | 8080 | `configs/ferrogateway.config.yaml` |
 | LiteLLM | 4000 | `configs/litellm.native.config.yaml` |
 | Bifrost | 8081 | `configs/bifrost.config.json` |
 | Kong | 8000 | `configs/kong.yaml` + `configs/kong.conf` |
@@ -101,7 +101,7 @@ cat results/native-*/BENCHMARK-REPORT.md
 ### Single gateway
 
 ```bash
-make bench-ferrogateway   # Ferro AI Gateway only
+make bench-ferrogateway   # Ferro Labs AI Gateway only
 make bench-litellm        # LiteLLM only
 make bench-bifrost        # Bifrost only
 make bench-kong           # Kong only
@@ -160,4 +160,4 @@ make clean             # Remove binaries, results, virtualenv
 ## Relationship to Other Repos
 
 - `ferro-labs/ai-gateway` — the OSS gateway under test
-- `ferro-labs/ai-gateway-benchmark-performance` — **archived predecessor** (k6+wrk self-benchmark only, single gateway). Use this repo instead.
+— **archived predecessor** (k6+wrk self-benchmark only, single gateway). Use this repo instead.

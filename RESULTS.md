@@ -4,7 +4,7 @@
 
 ## Headline Comparison
 
-| Metric | Ferro | Bifrost | Kong | LiteLLM | Portkey |
+| Metric | Ferro Labs | Bifrost | Kong | LiteLLM | Portkey |
 |---|---|---|---|---|---|
 | **Gateway overhead** | 1.3ms | 1.5ms | 1.3ms | 218ms | — |
 | **Peak throughput** | 13,926 RPS | 13,380 RPS | 15,891 RPS | 168 RPS | 0 RPS* |
@@ -19,9 +19,9 @@ _*Portkey returned 0% success on all standard scenarios — all requests counted
 
 ## Key Findings
 
-1. **Go-native gateways dominate.** Ferro, Bifrost, and Kong all add ~1.3ms overhead and handle 8,000–16,000 RPS. Interpreted runtimes (Python/LiteLLM, TS/Portkey) lag by 5–100x in throughput.
+1. **Go-native gateways dominate.** Ferro Labs, Bifrost, and Kong all add ~1.3ms overhead and handle 8,000–16,000 RPS. Interpreted runtimes (Python/LiteLLM, TS/Portkey) lag by 5–100x in throughput.
 
-2. **Ferro scales linearly to 1000 VUs** with p99 of 111.9ms — the best tail latency among gateways that maintained 100% success at all concurrency levels, except Kong which achieved p99 of 73.3ms.
+2. **Ferro Labs scales linearly to 1000 VUs** with p99 of 111.9ms — the best tail latency among gateways that maintained 100% success at all concurrency levels, except Kong which achieved p99 of 73.3ms.
 
 3. **Kong leads at peak concurrency** (15,891 RPS at 1000 VU) with the lowest memory footprint (43 MB). However, Kong's memory reporting was static, suggesting the monitoring may not have captured actual usage.
 
@@ -29,13 +29,13 @@ _*Portkey returned 0% success on all standard scenarios — all requests counted
 
 5. **LiteLLM has the highest overhead** (~218ms) and caps around 168 RPS. At 1000 VU, p99 latency reaches 30 seconds (timeouts). Memory usage climbs to 1.2 GB under load.
 
-6. **Streaming performance** is comparable across Go-native gateways. TTFB is ~61ms for Ferro, Bifrost, and Kong (matching the 60ms mock latency + ~1ms overhead).
+6. **Streaming performance** is comparable across Go-native gateways. TTFB is ~61ms for Ferro Labs, Bifrost, and Kong (matching the 60ms mock latency + ~1ms overhead).
 
 ## Scenario Breakdown
 
 ### Non-Streaming Scenarios
 
-| Scenario | VUs | Ferro RPS | Bifrost RPS | Kong RPS | LiteLLM RPS |
+| Scenario | VUs | Ferro Labs RPS | Bifrost RPS | Kong RPS | LiteLLM RPS |
 |---|---:|---:|---:|---:|---:|
 | smoke | 10 | 163 | 163 | 163 | 107 |
 | baseline | 50 | 813 | 812 | 814 | 175 |
@@ -45,14 +45,14 @@ _*Portkey returned 0% success on all standard scenarios — all requests counted
 
 ### Streaming Scenarios
 
-| Scenario | VUs | Ferro RPS | Bifrost RPS | Kong RPS | LiteLLM RPS |
+| Scenario | VUs | Ferro Labs RPS | Bifrost RPS | Kong RPS | LiteLLM RPS |
 |---|---:|---:|---:|---:|---:|
 | streaming-baseline | 50 | 809 | 811 | 814 | 85 |
 | streaming-stress | 100 | 1,620 | 1,623 | 1,630 | 82 |
 
 ### Tail Latency (p99) at Scale
 
-| Scenario | VUs | Ferro | Bifrost | Kong | LiteLLM |
+| Scenario | VUs | Ferro Labs | Bifrost | Kong | LiteLLM |
 |---|---:|---:|---:|---:|---:|
 | baseline | 50 | 64.1ms | 64.3ms | 62.9ms | 569.8ms |
 | stress | 150 | 63.4ms | 64.6ms | 63.4ms | 1,161ms |

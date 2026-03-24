@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# scripts/setup-ferro.sh — Download latest Ferro AI Gateway binary from GitHub releases.
+# scripts/setup-ferro.sh — Download latest Ferro Labs AI Gateway binary from GitHub releases.
 # Idempotent: re-downloads latest version on every run.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/.."
 
-echo "==> Setting up Ferro AI Gateway..."
+echo "==> Setting up Ferro Labs AI Gateway..."
 
 # Detect OS and arch
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -19,7 +19,7 @@ esac
 echo "  Platform: ${OS}/${ARCH}"
 
 # Pin to specific release (pre-releases aren't returned by /releases/latest)
-LATEST="${FERRO_VERSION:-v1.0.0-rc.2}"
+LATEST="${FERRO_VERSION:-v1.0.0-rc.3}"
 echo "  Version: $LATEST"
 
 # Download binary — assets are tarballs: ferrogw_VERSION_OS_ARCH.tar.gz
@@ -63,4 +63,4 @@ else
     echo "  Binary downloaded (--version flag may not be supported)"
 fi
 
-echo "  Ferro Gateway ready at bin/ferro-gw (${LATEST})"
+echo "  Ferro Labs AI Gateway ready at bin/ferro-gw (${LATEST})"

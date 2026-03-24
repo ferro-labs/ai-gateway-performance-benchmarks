@@ -1,5 +1,5 @@
 /**
- * k6 load test — FerroGateway vs any OpenAI-compatible gateway
+ * k6 load test — Ferro Labs AI Gateway vs any OpenAI-compatible gateway
  *
  * Designed for high-VU throughput measurement. Complements the Go
  * benchmark runner (cmd/bench/main.go) by enabling extreme ramp-to-peak

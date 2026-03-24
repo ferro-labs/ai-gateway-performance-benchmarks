@@ -1,6 +1,6 @@
 # AI Gateway Performance Benchmarks
 
-Reproducible benchmarking suite comparing **Ferro AI Gateway** against **LiteLLM**, **Bifrost**, and **Kong** under identical load profiles. All gateways run as native processes, ensuring µs-level measurements are not masked by infrastructure overhead.
+Reproducible benchmarking suite comparing **Ferro Labs AI Gateway** against **LiteLLM**, **Bifrost**, and **Kong** under identical load profiles. All gateways run as native processes, ensuring µs-level measurements are not masked by infrastructure overhead.
 
 All tooling is written in **Go**. LiteLLM requires Python for its proxy server.
 
@@ -17,7 +17,7 @@ All tooling is written in **Go**. LiteLLM requires Python for its proxy server.
 
 > GCP n2-standard-8 (8 vCPU, 32 GB RAM), Debian 12 — mock upstream with 60ms fixed latency
 
-| Metric | Ferro | Bifrost | Kong | LiteLLM | Portkey |
+| Metric | Ferro Labs | Bifrost | Kong | LiteLLM | Portkey |
 |---|---|---|---|---|---|
 | **Gateway overhead** | 1.3ms | 1.5ms | 1.3ms | 218ms | — |
 | **Peak throughput** | 13,926 RPS | 13,380 RPS | 15,891 RPS | 168 RPS | 0 RPS |
@@ -26,7 +26,7 @@ All tooling is written in **Go**. LiteLLM requires Python for its proxy server.
 | **Memory** | 57 MB | 146 MB | 43 MB | 653 MB | 423 MB |
 | **Success @ 5K RPS** | 100% | 0% | 100% | 99% | 0% |
 
-Go-native gateways (Ferro, Bifrost, Kong) add ~1.3ms overhead and handle 8,000–16,000 RPS. Interpreted runtimes (LiteLLM/Python, Portkey/TS) lag 5–100x in throughput. See **[RESULTS.md](RESULTS.md)** for full breakdown.
+Go-native gateways (Ferro Labs, Bifrost, Kong) add ~1.3ms overhead and handle 8,000–16,000 RPS. Interpreted runtimes (LiteLLM/Python, Portkey/TS) lag 5–100x in throughput. See **[RESULTS.md](RESULTS.md)** for full breakdown.
 
 ## Prerequisites
 
@@ -58,7 +58,7 @@ Results are written to `results/native-<timestamp>/BENCHMARK-REPORT.md`.
 ### Or install individual gateways
 
 ```bash
-make setup-ferro      # Download latest Ferro AI Gateway binary
+make setup-ferro      # Download latest Ferro Labs AI Gateway binary
 make setup-litellm    # Create .venv-litellm with latest LiteLLM
 make setup-bifrost    # Download latest Bifrost binary
 make setup-kong       # Install Kong from apt
@@ -81,7 +81,7 @@ cmd/
   report/main.go           — Report generator (CSV → Markdown + JSON)
 benchmarks.yaml            — Benchmark matrix: gateways × scenarios
 configs/
-  ferrogateway.config.yaml — Ferro AI Gateway config
+  ferrogateway.config.yaml — Ferro Labs AI Gateway config
   litellm.native.config.yaml — LiteLLM → mock server on localhost:9000
   litellm.config.yaml      — LiteLLM → real OpenAI (reference)
   bifrost.config.json      — Bifrost → mock server on localhost:9000
@@ -89,7 +89,7 @@ configs/
   kong.conf                — Kong native DB-less config
 scripts/
   setup-all.sh             — Install all native dependencies
-  setup-ferro.sh           — Download latest Ferro binary
+  setup-ferro.sh           — Download latest Ferro Labs binary
   setup-litellm.sh         — Create Python venv with latest LiteLLM
   setup-bifrost.sh         — Download/build latest Bifrost binary
   setup-kong.sh            — Install Kong from apt
@@ -106,13 +106,13 @@ results/                   — Generated output (gitignored)
 make help              # All available targets
 make build             # Compile Go binaries into bin/
 make setup             # Install all gateways natively (latest versions)
-make setup-ferro       # Install latest Ferro AI Gateway binary
+make setup-ferro       # Install latest Ferro Labs AI Gateway binary
 make setup-litellm     # Install latest LiteLLM in .venv-litellm
 make setup-bifrost     # Install latest Bifrost binary
 make setup-kong        # Install latest Kong natively (apt)
 make setup-mockserver  # Build Go mock server and bench tools
 make bench             # Run full benchmark suite (all gateways)
-make bench-ferrogateway # Ferro AI Gateway only
+make bench-ferrogateway # Ferro Labs AI Gateway only
 make bench-litellm     # LiteLLM only
 make bench-bifrost     # Bifrost only
 make bench-kong        # Kong only
