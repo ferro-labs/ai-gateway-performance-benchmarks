@@ -223,7 +223,7 @@ func writeReportMarkdown(path string, report Report, mockLatencyMS float64) {
 	// Preferred gateway order for the headline table
 	gwOrder := []string{"ferrogateway", "bifrost", "kong", "portkey", "litellm"}
 	gwLabels := map[string]string{
-		"ferrogateway": "Ferro",
+		"ferrogateway": "Ferro Labs",
 		"bifrost":      "Bifrost",
 		"kong":         "Kong",
 		"portkey":      "Portkey",
@@ -496,7 +496,7 @@ func writeReportMarkdown(path string, report Report, mockLatencyMS float64) {
 	w("- **Measurement**: Timed measurement window after warmup; VUs send requests continuously\n")
 	w("- **Metrics**: Latency percentiles (p50/p95/p99/p99.9), throughput (RPS), TTFB for streaming, memory (VmRSS), CPU\n")
 	w("- **\"Failed\" requests**: In-flight requests cancelled when the benchmark timer expires (count equals VU count; not errors)\n")
-	w("- **Languages**: Go (Ferro, Bifrost), Go/Lua (Kong), Python (LiteLLM), TypeScript/Node.js (Portkey)\n")
+	w("- **Languages**: Go (Ferro Labs, Bifrost), Go/Lua (Kong), Python (LiteLLM), TypeScript/Node.js (Portkey)\n")
 	w("- **Gateways tested**: %s\n", strings.Join(gateways, ", "))
 	w("- **Scenarios**: %s\n", strings.Join(scenarios, ", "))
 
@@ -585,7 +585,7 @@ func writeFindings(f *os.File, rows []Row, scenarios []string, headlineLookup, s
 		avgInterp := avg(interpRPS)
 		if avgInterp > 0 {
 			ratio := avgGo / avgInterp
-			w("- **Go-native gateways (Ferro, Bifrost, Kong) outperform interpreted runtimes (Python/LiteLLM, TypeScript/Portkey) by %.0fx in throughput**\n", ratio)
+			w("- **Go-native gateways (Ferro Labs, Bifrost, Kong) outperform interpreted runtimes (Python/LiteLLM, TypeScript/Portkey) by %.0fx in throughput**\n", ratio)
 		}
 	}
 

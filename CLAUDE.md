@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Reproducible benchmarking suite comparing **Ferro AI Gateway** against LiteLLM, Bifrost, and Kong under identical load profiles. All gateways run as native processes for accurate µs-level measurements. Go tooling (requires Go 1.24+), Python for LiteLLM proxy. This is the canonical performance benchmark repo for `ferro-labs/ai-gateway`.
+Reproducible benchmarking suite comparing **Ferro Labs AI Gateway** against LiteLLM, Bifrost, and Kong under identical load profiles. All gateways run as native processes for accurate µs-level measurements. Go tooling (requires Go 1.24+), Python for LiteLLM proxy. This is the canonical performance benchmark repo for `ferro-labs/ai-gateway`.
 
 ## Build and Run
 
@@ -37,7 +37,7 @@ All gateways run as native processes on localhost. `scripts/run-benchmarks.sh` s
 **Three benchmark tools** target the same gateway endpoints through a shared mock server:
 
 - **`cmd/bench/main.go`** — Go benchmark orchestrator. Reads `benchmarks.yaml`, spawns concurrent VU goroutines per scenario, collects latency percentiles (p50/p95/p99/p99.9), outputs CSV + Markdown. This is the primary comparative tool (all gateways × all scenarios). Measures TTFB for streaming scenarios.
-- **`k6/chat_completions.js`** — High-VU ramp tests (up to 5k VUs) for FerroGateway self-benchmarking. Three scenarios: baseline (50 VU, 2 min), stress (150 VU, 5 min), peak_5k (ramp 0→5k VU). Configurable via `K6_GATEWAY_URL`, `K6_API_KEY`, `K6_SCENARIO` env vars.
+- **`k6/chat_completions.js`** — High-VU ramp tests (up to 5k VUs) for Ferro Labs AI Gateway self-benchmarking. Three scenarios: baseline (50 VU, 2 min), stress (150 VU, 5 min), peak_5k (ramp 0→5k VU). Configurable via `K6_GATEWAY_URL`, `K6_API_KEY`, `K6_SCENARIO` env vars.
 - **`wrk/chat_completions.lua`** — Peak RPS ceiling measurement. Configurable via `API_KEY` and `MODEL` env vars. Target URL is the wrk positional arg.
 
 **`cmd/mockserver/main.go`** — Zero-latency OpenAI-compatible mock server (port 9000). Returns instant fixed responses (blocking) or SSE streaming with configurable chunk delay (`--stream-chunk-delay-ms`, default 10ms). Supports `/health`, `/v1/models`, `/v1/chat/completions`. Logs request rate every 5s.
@@ -117,7 +117,7 @@ After all runs complete, use Claude Code to generate a publishable report:
 
 1. Read all result files in `results/` (CSV + Markdown + k6 JSON)
 2. Generate a markdown report with:
-   - Tables comparing Ferro vs LiteLLM vs Bifrost vs Kong (RPS, p50/p95/p99, error rate)
+   - Tables comparing Ferro Labs vs LiteLLM vs Bifrost vs Kong (RPS, p50/p95/p99, error rate)
    - Headline callouts: peak RPS, p99 latency at load, memory/CPU if captured
    - Methodology section: machine spec, OS, mock backend, concurrency levels, duration
    - Latency distribution charts (ASCII or embedded)
