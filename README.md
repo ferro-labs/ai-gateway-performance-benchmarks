@@ -13,6 +13,21 @@ All tooling is written in **Go**. LiteLLM requires Python for its proxy server.
 - High-VU ramp behaviour up to 5,000 concurrent users (k6)
 - Peak RPS ceiling (wrk)
 
+## Latest Results (2026-03-23)
+
+> GCP n2-standard-8 (8 vCPU, 32 GB RAM), Debian 12 — mock upstream with 60ms fixed latency
+
+| Metric | Ferro | Bifrost | Kong | LiteLLM | Portkey |
+|---|---|---|---|---|---|
+| **Gateway overhead** | 1.3ms | 1.5ms | 1.3ms | 218ms | — |
+| **Peak throughput** | 13,926 RPS | 13,380 RPS | 15,891 RPS | 168 RPS | 0 RPS |
+| **p99 @ 150 VU** | 63.4ms | 64.6ms | 63.4ms | 1,161ms | 162.7ms |
+| **p99 @ 1000 VU** | 111.9ms | 127.2ms | 73.3ms | 30,001ms | 30,001ms |
+| **Memory** | 57 MB | 146 MB | 43 MB | 653 MB | 423 MB |
+| **Success @ 5K RPS** | 100% | 0% | 100% | 99% | 0% |
+
+Go-native gateways (Ferro, Bifrost, Kong) add ~1.3ms overhead and handle 8,000–16,000 RPS. Interpreted runtimes (LiteLLM/Python, Portkey/TS) lag 5–100x in throughput. See **[RESULTS.md](RESULTS.md)** for full breakdown.
+
 ## Prerequisites
 
 | Requirement | Purpose |
