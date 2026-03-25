@@ -40,6 +40,7 @@ gateways:
     api_key: ${PORTKEY_API_KEY}
     request_path: /v1/chat/completions
     model: ${MODEL}
+    disable_keepalive: true
     extra_headers:
       # Tell Portkey to route upstream requests to the local mock server.
       # Set PORTKEY_UPSTREAM_URL= in .env to skip the override (real upstream).

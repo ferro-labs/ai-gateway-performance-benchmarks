@@ -48,7 +48,8 @@ type GatewayConfig struct {
 	APIKey       string            `yaml:"api_key"`
 	RequestPath  string            `yaml:"request_path"`
 	Model        string            `yaml:"model"`
-	ExtraHeaders map[string]string `yaml:"extra_headers"`
+	ExtraHeaders       map[string]string `yaml:"extra_headers"`
+	DisableKeepalive bool              `yaml:"disable_keepalive"`
 }
 
 type ScenarioConfig struct {
@@ -222,6 +223,7 @@ func runBenchmark(gwName string, gw GatewayConfig, sc ScenarioConfig, dur time.D
 			MaxIdleConns:        1000,
 			MaxIdleConnsPerHost: 500,
 			MaxConnsPerHost:     0, // unlimited
+			DisableKeepAlives:   gw.DisableKeepalive,
 		},
 	}
 	defer client.CloseIdleConnections()

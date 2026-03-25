@@ -304,31 +304,26 @@ start_kong() {
 }
 
 start_portkey() {
-    local gateway_entry
-    gateway_entry=$(npm root -g 2>/dev/null)/@portkey-ai/gateway/build/start-server.js
+    # Node 20 required — Portkey has compatibility issues with Node 22+
+    source "${NVM_DIR:-$HOME/.nvm}/nvm.sh" 2>/dev/null || true
+    nvm use 20 2>/dev/null || true
 
-    if [ ! -f "$gateway_entry" ]; then
-        # Try npx as fallback
-        if command -v npx &>/dev/null; then
-            echo "  Using npx to run Portkey gateway"
-            PORT=8787 PORTKEY_CONFIG_PATH="$(pwd)/configs/portkey.native.config.json" \
-                npx @portkey-ai/gateway &
-            GW_PID=$!
-            echo "  Started portkey via npx (PID $GW_PID)"
-            wait_healthy "http://localhost:8787" "portkey" 60
-            return 0
-        fi
-        echo "  SKIP: Portkey gateway not found."
+    # Find Portkey entry point
+    local portkey_entry
+    portkey_entry=$(npm root -g 2>/dev/null)/@portkey-ai/gateway/build/start-server.js
+    if [ ! -f "$portkey_entry" ]; then
+        echo "  SKIP: Portkey not found at $portkey_entry"
         echo "        Install: make setup-portkey"
         return 1
     fi
-    echo "  Entry: $gateway_entry"
 
-    PORTKEY_CONFIG_PATH="$(pwd)/configs/portkey.native.config.json" \
-        node "$gateway_entry" --port=8787 &
+    echo "  Node: $(node --version)"
+    echo "  Entry: $portkey_entry"
+
+    PORT=8787 node "$portkey_entry" 2>/dev/null &
     GW_PID=$!
     echo "  Started portkey (PID $GW_PID)"
-    wait_healthy "http://localhost:8787" "portkey" 60
+    wait_healthy "http://localhost:8787" "portkey" 30
 }
 
 # ---------------------------------------------------------------------------
