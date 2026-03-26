@@ -1,0 +1,40 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 1K of event 'cpu-clock:ppp'
+# Event count (approx.): 12838383710
+#
+# Overhead  Command  Shared Object      Symbol                                                                                                                                                 
+# ........  .......  .................  .......................................................................................................................................................
+#
+     7.00%  bifrost  [kernel.kallsyms]  [k] _raw_spin_unlock_irqrestore
+            |
+            ---_raw_spin_unlock_irqrestore
+               |          
+               |--3.54%--try_to_wake_up
+               |          wake_up_q
+               |          futex_wake
+               |          do_futex
+               |          __x64_sys_futex
+               |          do_syscall_64
+               |          entry_SYSCALL_64_after_hwframe
+               |          runtime.futex.abi0
+               |          |          
+               |           --3.46%--runtime.notewakeup
+               |                     |          
+               |                     |--1.81%--runtime.entersyscallWakeSysmon
+               |                     |          runtime.systemstack.abi0
+               |                     |          runtime.reentersyscall
+               |                     |          runtime.entersyscall
+               |                     |          |          
+               |                     |          |--1.10%--syscall.Syscall
+               |                     |          |          syscall.read
+               |                     |          |          internal/poll.(*FD).Read
+               |                     |          |          net.(*netFD).Read
+               |                     |          |          net.(*conn).Read
+               |                     |          |          bufio.(*Reader).fill
+               |                     |          |          bufio.(*Reader).Peek
+               |                     |          |          
+               |                     |           --0.71%--syscall.Syscall6

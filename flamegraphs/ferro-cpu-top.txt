@@ -1,0 +1,271 @@
+File: ferro-gw
+Build ID: 03685a972842b301917b73b757b68b086fefc884
+Type: cpu
+Time: 2026-03-26 04:41:12 UTC
+Duration: 30.15s, Total samples = 9.90s (32.83%)
+Showing nodes accounting for 7.35s, 74.24% of 9.90s total
+Dropped 432 nodes (cum <= 0.05s)
+      flat  flat%   sum%        cum   cum%
+     3.15s 31.82% 31.82%      3.15s 31.82%  internal/runtime/syscall.Syscall6
+     0.78s  7.88% 39.70%      0.78s  7.88%  runtime.futex
+     0.14s  1.41% 41.11%      0.18s  1.82%  runtime.step
+     0.14s  1.41% 42.53%      0.21s  2.12%  runtime.unlock2
+     0.13s  1.31% 43.84%      0.14s  1.41%  runtime.lock2
+     0.12s  1.21% 45.05%      0.35s  3.54%  runtime.pcvalue
+     0.11s  1.11% 46.16%      0.12s  1.21%  runtime.findfunc
+     0.09s  0.91% 47.07%      0.09s  0.91%  runtime.nextFreeFast (inline)
+     0.09s  0.91% 47.98%      0.09s  0.91%  runtime.write1
+     0.08s  0.81% 48.79%      0.08s  0.81%  runtime.memclrNoHeapPointers
+     0.07s  0.71% 49.49%      0.81s  8.18%  encoding/json.(*decodeState).object
+     0.07s  0.71% 50.20%      0.14s  1.41%  net/textproto.CanonicalMIMEHeaderKey
+     0.07s  0.71% 50.91%      0.07s  0.71%  runtime.(*mspan).writeHeapBitsSmall
+     0.07s  0.71% 51.62%      0.07s  0.71%  runtime.memmove
+     0.06s  0.61% 52.22%      0.06s  0.61%  runtime.(*mLockProfile).recordUnlock
+     0.06s  0.61% 52.83%      0.24s  2.42%  runtime.(*stkframe).getStackMap
+     0.06s  0.61% 53.43%      0.06s  0.61%  runtime.findObject
+     0.06s  0.61% 54.04%      0.22s  2.22%  runtime.scanobject
+     0.05s  0.51% 54.55%      0.05s  0.51%  encoding/json.stateEndValue
+     0.05s  0.51% 55.05%      0.05s  0.51%  net/textproto.validHeaderFieldByte (inline)
+     0.05s  0.51% 55.56%      0.05s  0.51%  runtime.(*timers).wakeTime (inline)
+     0.05s  0.51% 56.06%      0.06s  0.61%  runtime.acquireSudog
+     0.05s  0.51% 56.57%      0.07s  0.71%  runtime.mallocgcTiny
+     0.05s  0.51% 57.07%      0.39s  3.94%  runtime.netpoll
+     0.05s  0.51% 57.58%      0.05s  0.51%  runtime.typePointers.nextFast (inline)
+     0.04s   0.4% 57.98%      0.43s  4.34%  encoding/json.(*decodeState).literalStore
+     0.04s   0.4% 58.38%      0.18s  1.82%  main.(*serverConnTracker).observe
+     0.04s   0.4% 58.79%      0.51s  5.15%  runtime.mallocgc
+     0.04s   0.4% 59.19%      0.13s  1.31%  runtime.mallocgcSmallNoscan
+     0.03s   0.3% 59.49%      1.36s 13.74%  bufio.(*Writer).Flush
+     0.03s   0.3% 59.80%      0.39s  3.94%  encoding/json.indirect
+     0.03s   0.3% 60.10%      0.06s  0.61%  encoding/json.stateBeginValue
+     0.03s   0.3% 60.40%      0.06s  0.61%  net/http.(*Transport).tryPutIdleConn
+     0.03s   0.3% 60.71%      0.19s  1.92%  net/http.(*persistConn).roundTrip
+     0.03s   0.3% 61.01%      0.05s  0.51%  net/http.appendTime
+     0.03s   0.3% 61.31%      0.07s  0.71%  net/textproto.canonicalMIMEHeaderKey
+     0.03s   0.3% 61.62%      0.22s  2.22%  runtime.(*unwinder).resolveInternal
+     0.03s   0.3% 61.92%      0.05s  0.51%  runtime.exitsyscall
+     0.03s   0.3% 62.22%      0.96s  9.70%  runtime.findRunnable
+     0.03s   0.3% 62.53%      0.26s  2.63%  runtime.mallocgcSmallScanNoHeader
+     0.03s   0.3% 62.83%      0.25s  2.53%  runtime.newobject
+     0.03s   0.3% 63.13%      0.17s  1.72%  runtime.selectgo
+     0.03s   0.3% 63.43%      0.05s  0.51%  runtime.sweepone
+     0.03s   0.3% 63.74%      0.05s  0.51%  sync.(*Pool).Get
+     0.02s   0.2% 63.94%      0.21s  2.12%  encoding/json.(*Decoder).readValue
+     0.02s   0.2% 64.14%      0.05s  0.51%  encoding/json.appendCompact
+     0.02s   0.2% 64.34%      0.27s  2.73%  encoding/json.sliceEncoder.encode
+     0.02s   0.2% 64.55%      0.34s  3.43%  encoding/json.structEncoder.encode
+     0.02s   0.2% 64.75%      1.39s 14.04%  github.com/ferro-labs/ai-gateway.(*Gateway).Route
+     0.02s   0.2% 64.95%      2.86s 28.89%  github.com/go-chi/chi/v5.(*Mux).ServeHTTP
+     0.02s   0.2% 65.15%      0.38s  3.84%  github.com/go-chi/chi/v5.(*node).findRoute
+     0.02s   0.2% 65.35%      1.17s 11.82%  internal/poll.(*FD).Write
+     0.02s   0.2% 65.56%      0.05s  0.51%  internal/poll.runtime_pollWait
+     0.02s   0.2% 65.76%      0.06s  0.61%  internal/runtime/maps.(*Map).Delete
+     0.02s   0.2% 65.96%      2.27s 22.93%  main.mountOpenAIRoutes.chatCompletionsHandler.func1
+     0.02s   0.2% 66.16%      0.08s  0.81%  net/http.Header.writeSubset
+     0.02s   0.2% 66.36%      0.32s  3.23%  reflect.(*rtype).Name
+     0.02s   0.2% 66.57%      0.09s  0.91%  runtime.(*timers).check
+     0.02s   0.2% 66.77%      0.30s  3.03%  runtime.adjustframe
+     0.02s   0.2% 66.97%      0.13s  1.31%  runtime.freeSomeWbufs
+     0.02s   0.2% 67.17%      0.06s  0.61%  runtime.makechan
+     0.02s   0.2% 67.37%      0.05s  0.51%  runtime.mapIterStart
+     0.02s   0.2% 67.58%      0.07s  0.71%  runtime.mapaccess1_faststr
+     0.02s   0.2% 67.78%      0.35s  3.54%  runtime.reentersyscall
+     0.02s   0.2% 67.98%      0.29s  2.93%  runtime.resolveNameOff
+     0.02s   0.2% 68.18%      0.10s  1.01%  runtime.slicebytetostring
+     0.02s   0.2% 68.38%      0.09s  0.91%  runtime.stealWork
+     0.01s   0.1% 68.48%      0.41s  4.14%  bufio.(*Reader).Peek
+     0.01s   0.1% 68.59%      0.19s  1.92%  bufio.(*Reader).ReadSlice
+     0.01s   0.1% 68.69%      0.06s  0.61%  context.WithCancel
+     0.01s   0.1% 68.79%      0.05s  0.51%  crypto/rand.(*reader).Read
+     0.01s   0.1% 68.89%      1.04s 10.51%  encoding/json.(*Decoder).Decode
+     0.01s   0.1% 68.99%      0.52s  5.25%  encoding/json.(*decodeState).array
+     0.01s   0.1% 69.09%      0.81s  8.18%  encoding/json.(*decodeState).value
+     0.01s   0.1% 69.19%      0.23s  2.32%  encoding/json.addrMarshalerEncoder
+     0.01s   0.1% 69.29%      0.25s  2.53%  encoding/json.arrayEncoder.encode
+     0.01s   0.1% 69.39%      0.24s  2.42%  encoding/json.condAddrEncoder.encode
+     0.01s   0.1% 69.49%      1.25s 12.63%  github.com/ferro-labs/ai-gateway.(*Gateway).Route.func3
+     0.01s   0.1% 69.60%      0.10s  1.01%  github.com/ferro-labs/ai-gateway/providers/core.(*Message).UnmarshalJSON
+     0.01s   0.1% 69.70%      0.05s  0.51%  github.com/prometheus/client_golang/prometheus.(*MetricVec).hashLabelValues
+     0.01s   0.1% 69.80%      0.67s  6.77%  internal/poll.(*FD).Accept
+     0.01s   0.1% 69.90%      0.62s  6.26%  internal/poll.(*FD).Close
+     0.01s   0.1% 70.00%      0.60s  6.06%  internal/poll.(*FD).Read
+     0.01s   0.1% 70.10%      0.08s  0.81%  internal/poll.(*pollDesc).wait
+     0.01s   0.1% 70.20%      0.65s  6.57%  internal/poll.accept
+     0.01s   0.1% 70.30%      0.05s  0.51%  internal/poll.runtime_pollSetDeadline
+     0.01s   0.1% 70.40%      0.34s  3.43%  internal/runtime/syscall.EpollWait
+     0.01s   0.1% 70.51%      2.69s 27.17%  main.corsMiddleware.func1.1
+     0.01s   0.1% 70.61%      0.66s  6.67%  net.(*conn).Close
+     0.01s   0.1% 70.71%      0.62s  6.26%  net.(*conn).Read
+     0.01s   0.1% 70.81%      0.81s  8.18%  net.(*netFD).accept
+     0.01s   0.1% 70.91%      0.11s  1.11%  net.setKeepAlive
+     0.01s   0.1% 71.01%      0.08s  0.81%  net.setNoDelay
+     0.01s   0.1% 71.11%      0.43s  4.34%  net/http.(*Client).do
+     0.01s   0.1% 71.21%      0.40s  4.04%  net/http.(*Client).send
+     0.01s   0.1% 71.31%      1.36s 13.74%  net/http.(*Server).Serve
+     0.01s   0.1% 71.41%      0.39s  3.94%  net/http.(*Transport).roundTrip
+     0.01s   0.1% 71.52%      0.14s  1.41%  net/http.(*chunkWriter).writeHeader
+     0.01s   0.1% 71.62%      5.52s 55.76%  net/http.(*conn).serve
+     0.01s   0.1% 71.72%      0.19s  1.92%  net/http.(*conn).setState
+     0.01s   0.1% 71.82%      0.07s  0.71%  net/http.(*persistConn).readLoop.func2
+     0.01s   0.1% 71.92%      0.05s  0.51%  net/http.(*response).write
+     0.01s   0.1% 72.02%      0.05s  0.51%  net/http.NewRequestWithContext
+     0.01s   0.1% 72.12%      0.49s  4.95%  net/http.persistConnWriter.Write
+     0.01s   0.1% 72.22%      0.41s  4.14%  net/http.readRequest
+     0.01s   0.1% 72.32%      0.20s  2.02%  net/textproto.(*Reader).readLineSlice
+     0.01s   0.1% 72.42%      0.10s  1.01%  net/textproto.MIMEHeader.Set (inline)
+     0.01s   0.1% 72.53%      0.15s  1.52%  net/textproto.readMIMEHeader
+     0.01s   0.1% 72.63%      0.32s  3.23%  runtime.(*unwinder).next
+     0.01s   0.1% 72.73%      0.05s  0.51%  runtime.SetFinalizer
+     0.01s   0.1% 72.83%      0.34s  3.43%  runtime.bgsweep
+     0.01s   0.1% 72.93%      0.07s  0.71%  runtime.chansend
+     0.01s   0.1% 73.03%      0.68s  6.87%  runtime.copystack
+     0.01s   0.1% 73.13%      0.27s  2.73%  runtime.gcDrain
+     0.01s   0.1% 73.23%      0.08s  0.81%  runtime.mapaccess2
+     0.01s   0.1% 73.33%      1.09s 11.01%  runtime.mcall
+     0.01s   0.1% 73.43%      0.17s  1.72%  runtime.pcdatavalue
+     0.01s   0.1% 73.54%      1.05s 10.61%  runtime.schedule
+     0.01s   0.1% 73.64%      0.91s  9.19%  runtime.systemstack
+     0.01s   0.1% 73.74%      0.22s  2.22%  runtime.unlock (inline)
+     0.01s   0.1% 73.84%      0.23s  2.32%  runtime.wakep
+     0.01s   0.1% 73.94%      2.73s 27.58%  syscall.RawSyscall6
+     0.01s   0.1% 74.04%      2.23s 22.53%  syscall.Syscall
+     0.01s   0.1% 74.14%      0.91s  9.19%  syscall.Syscall6
+     0.01s   0.1% 74.24%      0.50s  5.05%  syscall.read
+         0     0% 74.24%      0.19s  1.92%  bufio.(*Reader).ReadLine
+         0     0% 74.24%      0.58s  5.86%  bufio.(*Reader).fill
+         0     0% 74.24%      0.05s  0.51%  context.(*cancelCtx).Done
+         0     0% 74.24%      0.06s  0.61%  context.(*cancelCtx).cancel
+         0     0% 74.24%      0.08s  0.81%  context.(*cancelCtx).propagateCancel
+         0     0% 74.24%      0.05s  0.51%  context.WithCancelCause
+         0     0% 74.24%      0.09s  0.91%  context.withCancel (inline)
+         0     0% 74.24%      0.05s  0.51%  crypto/rand.Read
+         0     0% 74.24%      0.12s  1.21%  encoding/json.(*Decoder).refill
+         0     0% 74.24%      0.20s  2.02%  encoding/json.(*Encoder).Encode
+         0     0% 74.24%      0.82s  8.28%  encoding/json.(*decodeState).unmarshal
+         0     0% 74.24%      0.34s  3.43%  encoding/json.(*encodeState).marshal
+         0     0% 74.24%      0.34s  3.43%  encoding/json.(*encodeState).reflectValue
+         0     0% 74.24%      0.30s  3.03%  encoding/json.Marshal
+         0     0% 74.24%      0.11s  1.11%  encoding/json.Unmarshal
+         0     0% 74.24%      0.13s  1.31%  encoding/json.ptrEncoder.encode
+         0     0% 74.24%      2.83s 28.59%  github.com/ferro-labs/ai-gateway/internal/logging.Middleware.func1
+         0     0% 74.24%      0.07s  0.71%  github.com/ferro-labs/ai-gateway/internal/logging.NewTraceID
+         0     0% 74.24%      1.24s 12.53%  github.com/ferro-labs/ai-gateway/internal/strategies.(*Single).Execute
+         0     0% 74.24%      0.17s  1.72%  github.com/ferro-labs/ai-gateway/providers/core.Message.MarshalJSON
+         0     0% 74.24%      1.23s 12.42%  github.com/ferro-labs/ai-gateway/providers/openai.(*Provider).Complete
+         0     0% 74.24%      2.65s 26.77%  github.com/go-chi/chi/v5.(*Mux).routeHTTP
+         0     0% 74.24%      0.38s  3.84%  github.com/go-chi/chi/v5.(*node).FindRoute
+         0     0% 74.24%      2.71s 27.37%  github.com/go-chi/chi/v5/middleware.RealIP.func1
+         0     0% 74.24%      2.71s 27.37%  github.com/go-chi/chi/v5/middleware.Recoverer.func1
+         0     0% 74.24%      0.07s  0.71%  github.com/prometheus/client_golang/prometheus.(*GaugeVec).GetMetricWithLabelValues (inline)
+         0     0% 74.24%      0.07s  0.71%  github.com/prometheus/client_golang/prometheus.(*GaugeVec).WithLabelValues
+         0     0% 74.24%      0.09s  0.91%  github.com/prometheus/client_golang/prometheus.(*MetricVec).GetMetricWithLabelValues
+         0     0% 74.24%      0.07s  0.71%  internal/poll.(*FD).Init
+         0     0% 74.24%      0.07s  0.71%  internal/poll.(*FD).SetReadDeadline (inline)
+         0     0% 74.24%      0.30s  3.03%  internal/poll.(*FD).SetsockoptInt
+         0     0% 74.24%      0.62s  6.26%  internal/poll.(*FD).decref
+         0     0% 74.24%      0.61s  6.16%  internal/poll.(*FD).destroy
+         0     0% 74.24%      0.57s  5.76%  internal/poll.(*SysFile).destroy (inline)
+         0     0% 74.24%      0.07s  0.71%  internal/poll.(*pollDesc).init
+         0     0% 74.24%      0.08s  0.81%  internal/poll.(*pollDesc).waitRead (inline)
+         0     0% 74.24%      1.64s 16.57%  internal/poll.ignoringEINTRIO (inline)
+         0     0% 74.24%      0.07s  0.71%  internal/poll.runtime_pollOpen
+         0     0% 74.24%      0.07s  0.71%  internal/poll.setDeadlineImpl
+         0     0% 74.24%      0.10s  1.01%  internal/runtime/syscall.EpollCtl (inline)
+         0     0% 74.24%      0.06s  0.61%  main.(*serverConnTracker).ConnContext
+         0     0% 74.24%      0.18s  1.82%  main.(*serverConnTracker).ConnState
+         0     0% 74.24%      0.61s  6.16%  main.decodeChatCompletionRequest
+         0     0% 74.24%      0.06s  0.61%  main.decrementConnectionGauge
+         0     0% 74.24%      1.36s 13.74%  main.main
+         0     0% 74.24%      0.17s  1.72%  net.(*TCPAddr).String
+         0     0% 74.24%      0.24s  2.42%  net.(*TCPConn).SetKeepAliveConfig
+         0     0% 74.24%      1.15s 11.62%  net.(*TCPListener).Accept
+         0     0% 74.24%      1.15s 11.62%  net.(*TCPListener).accept
+         0     0% 74.24%      0.07s  0.71%  net.(*conn).SetReadDeadline
+         0     0% 74.24%      1.18s 11.92%  net.(*conn).Write
+         0     0% 74.24%      0.65s  6.57%  net.(*netFD).Close
+         0     0% 74.24%      0.60s  6.06%  net.(*netFD).Read
+         0     0% 74.24%      0.07s  0.71%  net.(*netFD).SetReadDeadline (inline)
+         0     0% 74.24%      1.18s 11.92%  net.(*netFD).Write
+         0     0% 74.24%      0.07s  0.71%  net.(*netFD).init (inline)
+         0     0% 74.24%      0.34s  3.43%  net.newTCPConn
+         0     0% 74.24%      0.06s  0.61%  net.setKeepAliveCount
+         0     0% 74.24%      0.06s  0.61%  net.setKeepAliveIdle
+         0     0% 74.24%      0.43s  4.34%  net/http.(*Client).Do (inline)
+         0     0% 74.24%      0.13s  1.31%  net/http.(*Request).write
+         0     0% 74.24%      1.36s 13.74%  net/http.(*Server).ListenAndServe
+         0     0% 74.24%      0.39s  3.94%  net/http.(*Transport).RoundTrip
+         0     0% 74.24%      0.09s  0.91%  net/http.(*Transport).getConn
+         0     0% 74.24%      0.05s  0.51%  net/http.(*Transport).queueForIdleConn
+         0     0% 74.24%      0.07s  0.71%  net/http.(*body).Read
+         0     0% 74.24%      0.07s  0.71%  net/http.(*body).readLocked
+         0     0% 74.24%      0.14s  1.41%  net/http.(*chunkWriter).Write
+         0     0% 74.24%      0.68s  6.87%  net/http.(*conn).close
+         0     0% 74.24%      0.52s  5.25%  net/http.(*conn).readRequest
+         0     0% 74.24%      0.74s  7.47%  net/http.(*conn).serve.func1
+         0     0% 74.24%      0.39s  3.94%  net/http.(*connReader).Read
+         0     0% 74.24%      0.10s  1.01%  net/http.(*connReader).backgroundRead
+         0     0% 74.24%      0.07s  0.71%  net/http.(*connReader).startBackgroundRead
+         0     0% 74.24%      0.19s  1.92%  net/http.(*persistConn).Read
+         0     0% 74.24%      0.55s  5.56%  net/http.(*persistConn).readLoop
+         0     0% 74.24%      0.12s  1.21%  net/http.(*persistConn).readResponse
+         0     0% 74.24%      0.65s  6.57%  net/http.(*persistConn).writeLoop
+         0     0% 74.24%      0.05s  0.51%  net/http.(*response).Write
+         0     0% 74.24%      0.88s  8.89%  net/http.(*response).finishRequest
+         0     0% 74.24%      2.83s 28.59%  net/http.HandlerFunc.ServeHTTP
+         0     0% 74.24%      0.05s  0.51%  net/http.Header.Clone (inline)
+         0     0% 74.24%      0.06s  0.61%  net/http.Header.Get (inline)
+         0     0% 74.24%      0.10s  1.01%  net/http.Header.Set (partial-inline)
+         0     0% 74.24%      0.05s  0.51%  net/http.Header.WriteSubset (inline)
+         0     0% 74.24%      0.12s  1.21%  net/http.ReadResponse
+         0     0% 74.24%      0.70s  7.07%  net/http.checkConnErrorWriter.Write
+         0     0% 74.24%      0.39s  3.94%  net/http.send
+         0     0% 74.24%      2.86s 28.89%  net/http.serverHandler.ServeHTTP
+         0     0% 74.24%      0.20s  2.02%  net/textproto.(*Reader).ReadLine (inline)
+         0     0% 74.24%      0.15s  1.52%  net/textproto.(*Reader).ReadMIMEHeader (inline)
+         0     0% 74.24%      0.06s  0.61%  net/textproto.MIMEHeader.Get
+         0     0% 74.24%      0.06s  0.61%  net/url.parse
+         0     0% 74.24%      0.30s  3.03%  reflect.(*rtype).String
+         0     0% 74.24%      0.29s  2.93%  reflect.(*rtype).nameOff (inline)
+         0     0% 74.24%      0.29s  2.93%  reflect.resolveNameOff
+         0     0% 74.24%      0.07s  0.71%  runtime.chansend1
+         0     0% 74.24%      0.36s  3.64%  runtime.entersyscall
+         0     0% 74.24%      0.32s  3.23%  runtime.entersyscall_sysmon
+         0     0% 74.24%      0.19s  1.92%  runtime.funcspdelta (inline)
+         0     0% 74.24%      0.24s  2.42%  runtime.futexsleep
+         0     0% 74.24%      0.54s  5.45%  runtime.futexwakeup
+         0     0% 74.24%      0.28s  2.83%  runtime.gcBgMarkWorker
+         0     0% 74.24%      0.27s  2.73%  runtime.gcBgMarkWorker.func2
+         0     0% 74.24%      0.27s  2.73%  runtime.gcDrainMarkWorkerDedicated (inline)
+         0     0% 74.24%      0.19s  1.92%  runtime.goexit0
+         0     0% 74.24%      0.09s  0.91%  runtime.goready (inline)
+         0     0% 74.24%      0.14s  1.41%  runtime.growslice
+         0     0% 74.24%      0.07s  0.71%  runtime.heapSetTypeNoHeader (inline)
+         0     0% 74.24%      0.14s  1.41%  runtime.lock (inline)
+         0     0% 74.24%      0.14s  1.41%  runtime.lockWithRank (inline)
+         0     0% 74.24%      0.23s  2.32%  runtime.mPark (inline)
+         0     0% 74.24%      1.36s 13.74%  runtime.main
+         0     0% 74.24%      0.09s  0.91%  runtime.netpollBreak
+         0     0% 74.24%      0.06s  0.61%  runtime.netpollopen
+         0     0% 74.24%      0.14s  1.41%  runtime.newproc
+         0     0% 74.24%      0.14s  1.41%  runtime.newproc.func1
+         0     0% 74.24%      0.70s  7.07%  runtime.newstack
+         0     0% 74.24%      0.23s  2.32%  runtime.notesleep
+         0     0% 74.24%      0.53s  5.35%  runtime.notewakeup
+         0     0% 74.24%      0.89s  8.99%  runtime.park_m
+         0     0% 74.24%      0.09s  0.91%  runtime.ready
+         0     0% 74.24%      0.06s  0.61%  runtime.resetspinning
+         0     0% 74.24%      0.08s  0.81%  runtime.send
+         0     0% 74.24%      0.08s  0.81%  runtime.send.goready.func1
+         0     0% 74.24%      0.25s  2.53%  runtime.startm
+         0     0% 74.24%      0.23s  2.32%  runtime.stopm
+         0     0% 74.24%      0.21s  2.12%  runtime.unlockWithRank (inline)
+         0     0% 74.24%      0.09s  0.91%  runtime.write
+         0     0% 74.24%      1.27s 12.83%  runtime/trace.WithRegion
+         0     0% 74.24%      0.64s  6.46%  syscall.Accept4
+         0     0% 74.24%      0.57s  5.76%  syscall.Close
+         0     0% 74.24%      0.50s  5.05%  syscall.Read (inline)
+         0     0% 74.24%      0.29s  2.93%  syscall.SetsockoptInt (inline)
+         0     0% 74.24%      1.13s 11.41%  syscall.Write (inline)
+         0     0% 74.24%      0.62s  6.26%  syscall.accept4
+         0     0% 74.24%      0.29s  2.93%  syscall.setsockopt
+         0     0% 74.24%      1.13s 11.41%  syscall.write
