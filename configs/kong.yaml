@@ -1,3 +1,9 @@
+# Kong AI Gateway OSS — Declarative Routes
+# Version: 3.9.1
+# Hardware: GCP n2-standard-8 (8 vCPU, 32GB RAM), Debian 12
+# Mode: dbless declarative config (loaded via KONG_DECLARATIVE_CONFIG)
+# Upstream: http://localhost:9000 (60ms mock server)
+#
 # Kong DB-less declarative config for native benchmarking.
 # Routes /v1/chat/completions to the local mock server on localhost:9000.
 # Used by scripts/run-benchmarks.sh via KONG_DECLARATIVE_CONFIG env var.

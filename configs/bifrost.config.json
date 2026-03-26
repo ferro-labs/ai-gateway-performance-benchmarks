@@ -1,4 +1,12 @@
 {
+  "_benchmark_notes": {
+    "version": "v1.0.0",
+    "hardware": "GCP n2-standard-8 (8 vCPU, 32GB RAM), Debian 12",
+    "started_by": "scripts/run-benchmarks.sh (see start_bifrost())",
+    "tuning": "default configuration, no custom tuning applied",
+    "upstream": "http://localhost:9000 (60ms mock server)",
+    "note": "Model format must be provider/model e.g. openai/gpt-4o"
+  },
   "$schema": "https://www.getbifrost.ai/schema",
   "providers": {
     "openai": {

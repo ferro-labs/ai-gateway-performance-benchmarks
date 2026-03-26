@@ -1,3 +1,12 @@
+# LiteLLM Proxy — Benchmark Config
+# Version: 1.82.6
+# Hardware: GCP n2-standard-8 (8 vCPU, 32GB RAM), Debian 12
+# Started by: litellm --config configs/litellm.native.config.yaml --port 4000
+# Tuning: default configuration, no custom tuning applied
+# Upstream: http://localhost:9000/v1 (60ms mock server)
+# Install: pip install litellm[proxy]==1.82.6
+# Auth: master_key set to allow benchmark runner requests
+#
 # LiteLLM proxy config for native-process benchmarking.
 # Points to mock server on localhost:9000 (no Docker networking).
 # For Docker mode, use litellm.mock.config.yaml instead.

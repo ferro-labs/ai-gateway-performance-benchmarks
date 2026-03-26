@@ -1,3 +1,10 @@
+# Ferro Labs AI Gateway — Benchmark Config
+# Version: v1.0.0
+# Hardware: GCP n2-standard-8 (8 vCPU, 32GB RAM), Debian 12
+# Started by: scripts/run-benchmarks.sh (see start_ferrogateway())
+# Tuning: default configuration, no custom tuning applied
+# Upstream: http://localhost:9000 (60ms mock server)
+#
 # Ferro Labs AI Gateway config for benchmark comparison.
 # Run: ferrogw --config configs/ferrogateway.config.yaml
 #
