@@ -1,32 +1,63 @@
 # AI Gateway Performance Benchmarks
 
-Reproducible benchmarking suite comparing **Ferro Labs AI Gateway** against **LiteLLM**, **Bifrost**, and **Kong** under identical load profiles. All gateways run as native processes, ensuring µs-level measurements are not masked by infrastructure overhead.
+Reproducible benchmarking suite comparing **Ferro Labs AI Gateway** against **LiteLLM**, **Bifrost**, **Kong**, and **Portkey** under identical load profiles. All 5 gateways run as native processes, ensuring µs-level measurements are not masked by infrastructure overhead.
 
-All tooling is written in **Go**. LiteLLM requires Python for its proxy server.
+All tooling is written in **Go**. LiteLLM requires Python for its proxy server. Portkey runs via Docker with `--network host`.
 
 ## What this benchmark measures
 
-- Pure gateway overhead (mock backend, ~0ms upstream latency)
-- Throughput (Requests/s) at 10, 50, 150, 500, and 1000 concurrent users
+- Pure gateway overhead (mock backend, 60ms fixed upstream latency)
+- Throughput (Requests/s) at 50, 150, 300, 500, and 1,000 concurrent users
 - Latency percentiles: p50, p95, p99, p99.9
 - SSE streaming performance and time-to-first-byte (TTFB)
 - High-VU ramp behaviour up to 5,000 concurrent users (k6)
 - Peak RPS ceiling (wrk)
 
-## Latest Results (2026-03-23)
+## Benchmark Results
 
-> GCP n2-standard-8 (8 vCPU, 32 GB RAM), Debian 12 — mock upstream with 60ms fixed latency
+> Full methodology, raw data, and reproduction instructions:
+> [results.md](results.md)
 
-| Metric | Ferro Labs | Bifrost | Kong | LiteLLM | Portkey |
-|---|---|---|---|---|---|
-| **Gateway overhead** | 1.3ms | 1.5ms | 1.3ms | 218ms | — |
-| **Peak throughput** | 13,926 RPS | 13,380 RPS | 15,891 RPS | 168 RPS | 0 RPS |
-| **p99 @ 150 VU** | 63.4ms | 64.6ms | 63.4ms | 1,161ms | 162.7ms |
-| **p99 @ 1000 VU** | 111.9ms | 127.2ms | 73.3ms | 30,001ms | 30,001ms |
-| **Memory** | 57 MB | 146 MB | 43 MB | 653 MB | 423 MB |
-| **Success @ 5K RPS** | 100% | 0% | 100% | 99% | 0% |
+Tested on **GCP n2-standard-8** (8 vCPU, 32 GB RAM, Debian 12)
+against a **60ms fixed-latency mock upstream** — results reflect
+gateway overhead only, not provider latency.
 
-Go-native gateways (Ferro Labs, Bifrost, Kong) add ~1.3ms overhead and handle 8,000–16,000 RPS. Interpreted runtimes (LiteLLM/Python, Portkey/TS) lag 5–100x in throughput. See **[RESULTS.md](RESULTS.md)** for full breakdown.
+#### Throughput (RPS) by Concurrency
+
+| Gateway | 150 VU | 300 VU | 500 VU | 1,000 VU | Memory |
+|---|---:|---:|---:|---:|---|
+| **Ferro Labs v1.0.0** | **2,447** | **4,890** | **8,014** | **13,925** | 32–135 MB |
+| Kong OSS 3.9.1 | 2,443 | 4,885 | 8,133 | 15,891 | 43 MB flat |
+| Bifrost v1.0.0 | 2,441 | 0 † | 0 † | 0 † | 107–333 MB |
+| LiteLLM 1.82.6 | 175 ‡ | — | — | — | 335–1,124 MB |
+| Portkey latest | 851 § | 843 § | 855 § | 891 § | 67 MB |
+
+**†** Bifrost: connection pool starvation at ≥300 VU — 10M+ failures
+**‡** LiteLLM: CPU-bound ceiling ~175 RPS regardless of concurrency
+**§** Portkey: event loop congestion — throughput plateaus, latency 3–6×, errors accumulate at 500+ VU
+
+#### Ferro Labs Latency Profile
+
+| VU | RPS | p50 | p99 | Memory |
+|---:|---:|---:|---:|---:|
+| 50 | 813 | 61.3ms | 64.1ms | 36 MB |
+| 150 | 2,447 | 61.2ms | 63.4ms | 47 MB |
+| 300 | 4,890 | 61.2ms | 64.4ms | 72 MB |
+| 500 | 8,014 | 61.5ms | 72.9ms | 89 MB |
+| 1,000 | 13,925 | 68.1ms | 111.9ms | 135 MB |
+
+p50 overhead at 500 VU: **1.5ms**. p50 overhead at 1,000 VU: **8.1ms**.
+
+#### Reproduce
+
+```bash
+git clone https://github.com/ferro-labs/ai-gateway-performance-benchmarks
+cd ai-gateway-performance-benchmarks
+make setup
+make bench
+```
+
+See [configs/README.md](configs/README.md) for per-gateway setup notes.
 
 ## Prerequisites
 
@@ -37,7 +68,7 @@ Go-native gateways (Ferro Labs, Bifrost, Kong) add ~1.3ms overhead and handle 8,
 | **k6** _(optional)_ | High-VU throughput tests — [install](https://k6.io/docs/get-started/installation/) |
 | **wrk** _(optional)_ | Peak RPS tests — `sudo apt-get install wrk` / `brew install wrk` |
 
-Kong and Bifrost are installed by `make setup`. Each gateway has its own setup script.
+Kong and Bifrost are installed by `make setup`. Portkey runs via Docker. Each gateway has its own setup script.
 
 ## Quick start
 
