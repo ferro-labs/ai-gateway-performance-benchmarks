@@ -1,0 +1,46 @@
+# Real-world overhead benchmark configuration.
+# Measures gateway overhead against live OpenAI API.
+#
+# Requires OPENAI_API_KEY set in .env or environment.
+# Cost: ~$0.03 total (1,600 gpt-4o-mini calls at default sample counts).
+
+direct:
+  base_url: https://api.openai.com
+  api_key: ${OPENAI_API_KEY}
+  request_path: /v1/chat/completions
+  model: gpt-4o-mini
+
+gateway:
+  base_url: ${FERROGATEWAY_URL}
+  api_key: ${FERROGATEWAY_API_KEY}
+  request_path: /v1/chat/completions
+  model: gpt-4o-mini
+
+scenarios:
+  - name: non-streaming-short
+    samples: 200
+    prompt: "Return exactly one word: hello."
+    max_tokens: 10
+    stream: false
+    notes: "Minimal response — isolates gateway overhead"
+
+  - name: non-streaming-medium
+    samples: 100
+    prompt: "Write one sentence about API gateways."
+    max_tokens: 50
+    stream: false
+    notes: "Typical short response"
+
+  - name: streaming-short
+    samples: 200
+    prompt: "Return exactly one word: hello."
+    max_tokens: 10
+    stream: true
+    notes: "TTFB comparison for streaming"
+
+  - name: streaming-medium
+    samples: 100
+    prompt: "Write three sentences about distributed systems."
+    max_tokens: 100
+    stream: true
+    notes: "Streaming overhead across multiple chunks"

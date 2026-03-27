@@ -1,0 +1,11 @@
+# Ferro Labs AI Gateway — Real-World Benchmark Config
+#
+# Points at real OpenAI API (not mock server).
+# Requires OPENAI_API_KEY in environment.
+#
+# Run: ferrogw --config configs/ferrogateway-realworld.config.yaml
+strategy:
+  mode: single
+
+targets:
+  - virtual_key: openai

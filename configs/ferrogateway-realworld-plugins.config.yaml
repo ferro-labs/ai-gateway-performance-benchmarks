@@ -1,0 +1,45 @@
+# Ferro Labs AI Gateway — Real-World Benchmark Config (with plugins)
+#
+# Realistic production configuration with common plugins enabled.
+# This measures gateway overhead under typical usage conditions.
+strategy:
+  mode: single
+
+targets:
+  - virtual_key: openai
+
+aliases:
+  fast: gpt-4o-mini
+
+plugins:
+  - name: word-filter
+    type: guardrail
+    stage: before_request
+    enabled: true
+    config:
+      blocked_words: ["password", "secret", "credential"]
+      case_sensitive: false
+
+  - name: max-token
+    type: guardrail
+    stage: before_request
+    enabled: true
+    config:
+      max_tokens: 4096
+      max_messages: 50
+
+  - name: request-logger
+    type: logging
+    stage: before_request
+    enabled: true
+    config:
+      level: info
+      persist: false
+
+  - name: rate-limit
+    type: guardrail
+    stage: before_request
+    enabled: false
+    config:
+      requests_per_second: 100
+      burst: 100

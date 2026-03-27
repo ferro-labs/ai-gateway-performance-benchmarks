@@ -18,7 +18,7 @@ RESULTS_DIR  := results
 .PHONY: help build \
         setup setup-mockserver setup-ferro setup-litellm setup-bifrost setup-kong setup-portkey \
         bench bench-ferrogateway bench-litellm bench-bifrost bench-kong bench-portkey \
-        bench-repeat bench-dry \
+        bench-repeat bench-dry bench-realworld bench-realworld-quick \
         bench-k6 bench-k6-baseline bench-k6-peak \
         bench-wrk bench-wrk-light \
         report clean
@@ -31,12 +31,13 @@ help: ## Show all available targets
 # Build
 # ---------------------------------------------------------------------------
 
-build: ## Compile Go bench runner, mock server, and report generator into bin/
+build: ## Compile Go bench runner, mock server, report generator, and realbench into bin/
 	@mkdir -p $(BIN_DIR)
 	go build -o $(BIN_DIR)/bench ./cmd/bench
 	go build -o $(BIN_DIR)/mockserver ./cmd/mockserver
 	go build -o $(BIN_DIR)/report ./cmd/report
-	@echo "Build complete: $(BIN_DIR)/bench  $(BIN_DIR)/mockserver  $(BIN_DIR)/report"
+	go build -o $(BIN_DIR)/realbench ./cmd/realbench
+	@echo "Build complete: $(BIN_DIR)/bench  $(BIN_DIR)/mockserver  $(BIN_DIR)/report  $(BIN_DIR)/realbench"
 
 # ---------------------------------------------------------------------------
 # Setup — install native dependencies (latest versions)
@@ -90,6 +91,12 @@ bench-repeat: ## Full benchmark suite, 3 runs averaged (publication quality)
 
 bench-dry: ## Preview benchmark matrix without executing
 	$(BIN_DIR)/bench -config benchmarks.yaml -dotenv .env -dry-run
+
+bench-realworld: ## Run real-world overhead benchmark against live OpenAI (requires OPENAI_API_KEY)
+	./scripts/run-realworld.sh
+
+bench-realworld-quick: ## Quick real-world benchmark (50 samples per scenario)
+	./scripts/run-realworld.sh --samples 50
 
 # ---------------------------------------------------------------------------
 # k6 high-VU throughput benchmarks

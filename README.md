@@ -48,6 +48,33 @@ gateway overhead only, not provider latency.
 
 p50 overhead at 500 VU: **1.5ms**. p50 overhead at 1,000 VU: **8.1ms**.
 
+#### Live Upstream Overhead (OpenAI API)
+
+In addition to mock-based throughput benchmarks, we measure gateway overhead
+against the **live OpenAI API** (gpt-4o-mini) using two independent methods:
+
+1. **`X-Gateway-Overhead-Ms` header** — precise internal timing that isolates
+   gateway processing from provider latency (same approach as LiteLLM's
+   `x-litellm-overhead-duration-ms`)
+2. **Paired requests** — send identical requests both directly to OpenAI and
+   through the gateway, then compare latency distributions
+
+| Configuration | Overhead p50 | Overhead p99 | Method |
+|:---|---:|---:|:---|
+| No plugins (bare proxy) | **0.002ms** (2 microseconds) | 0.03ms | Header |
+| With plugins (word-filter, max-token, logger, rate-limit) | **0.025ms** (25 microseconds) | 0.074ms | Header |
+
+The paired-request delta confirms the header measurement but requires 200+ samples
+to overcome LLM response variance (500ms-2s per call).
+
+```bash
+# Live upstream overhead benchmark (~$0.03 for 1,600 gpt-4o-mini calls)
+make bench-realworld
+
+# Quick validation run (50 samples per scenario, ~$0.01)
+make bench-realworld-quick
+```
+
 #### Reproduce
 
 ```bash
@@ -108,11 +135,15 @@ make setup-mockserver # Build Go mock server + bench tools
 ```
 cmd/
   bench/main.go            — Go benchmark orchestrator (multi-gateway, multi-scenario)
+  realbench/main.go        — Live upstream overhead benchmark (paired direct-vs-gateway)
   mockserver/main.go       — Go mock server (zero-latency OpenAI-compatible upstream)
   report/main.go           — Report generator (CSV → Markdown + JSON)
 benchmarks.yaml            — Benchmark matrix: gateways × scenarios
+realworld.yaml             — Live upstream benchmark config (OpenAI scenarios)
 configs/
-  ferrogateway.config.yaml — Ferro Labs AI Gateway config
+  ferrogateway.config.yaml — Ferro Labs AI Gateway config (mock upstream)
+  ferrogateway-realworld.config.yaml — Ferro Labs config (live OpenAI upstream)
+  ferrogateway-realworld-plugins.config.yaml — Ferro Labs config (live OpenAI + plugins)
   litellm.native.config.yaml — LiteLLM → mock server on localhost:9000
   litellm.config.yaml      — LiteLLM → real OpenAI (reference)
   bifrost.config.json      — Bifrost → mock server on localhost:9000
@@ -126,6 +157,7 @@ scripts/
   setup-kong.sh            — Install Kong from apt
   setup-mockserver.sh      — Build Go binaries from source
   run-benchmarks.sh        — Run full benchmark suite (native processes)
+  run-realworld.sh         — Run live upstream overhead benchmark (OpenAI)
 k6/chat_completions.js     — k6 script: baseline, stress, peak_5k VU ramp
 wrk/chat_completions.lua   — wrk Lua script: peak RPS measurement
 results/                   — Generated output (gitignored)
@@ -149,6 +181,8 @@ make bench-bifrost     # Bifrost only
 make bench-kong        # Kong only
 make bench-repeat      # Full suite, 3 runs averaged
 make bench-dry         # Preview matrix without executing
+make bench-realworld   # Live upstream overhead benchmark (requires OPENAI_API_KEY)
+make bench-realworld-quick # Quick live upstream benchmark (50 samples)
 make bench-k6          # k6 high-VU throughput test
 make bench-wrk         # wrk peak RPS test
 make report            # Generate report from latest results
